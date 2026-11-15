@@ -7,6 +7,14 @@
   Progetto in gara a <b>The Big Hack 2026</b> · challenge <b>C4 Consorzio Clara</b> (Cisco Networking Academy)
 </p>
 
+<!-- Il video è nel repository (docs/video/): GitHub non lo riproduce dentro il README, quindi l'anteprima apre la sua pagina, dove parte il player. -->
+<p align="center">
+  <a href="docs/video/penguin-inc-network-academy.mp4">
+    <img src="docs/img/video.png" alt="Guarda il video di Penguin Inc: Network Academy" width="720">
+  </a><br>
+  <b>▶ <a href="docs/video/penguin-inc-network-academy.mp4">Guarda il video di presentazione</a></b>
+</p>
+
 ---
 
 ## The Big Hack 2026

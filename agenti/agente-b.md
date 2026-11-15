@@ -11,6 +11,9 @@ Ultimo aggiornamento: 14/11 22:50
   riavvio). Lo script è fuori dal repository.
 
 ## Fatto di recente
+- 15/11 11:00 · (questo commit) · **video di presentazione** in `docs/video/penguin-inc-network-academy.mp4`,
+  in cima al `README.md` con un'anteprima (`docs/img/video.png`) che apre il player di GitHub. Il server di
+  questo PC ora segue `main` di giovannids100/Penguin-Inc.---Network-Academy.
 - 15/11 08:05 · (questo commit) · **titoli di coda**: sezione `crediti` in `storia.yaml` (team Los Penguinos e
   musica di Zane Little, CC BY 4.0), mostrati dopo la promozione e ogni volta che si arriva al finale, più il
   pulsante «Crediti» nella schermata iniziale (`crediti()` in `storia.js`, stili in `storia.css`). Nuovo
