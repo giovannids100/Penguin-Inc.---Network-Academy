@@ -7,14 +7,12 @@
   Progetto in gara a <b>The Big Hack 2026</b> · challenge <b>C4 Consorzio Clara</b> (Cisco Networking Academy)
 </p>
 
-<!-- Il video è nel repository (docs/video/). GitHub riproduce dentro il README solo i video caricati come allegato
-     (github.com/user-attachments/...): un file del repository si può solo scaricare, quindi l'anteprima lo scarica. -->
-<p align="center">
-  <a href="docs/video/penguin-inc-network-academy.mp4?raw=true">
-    <img src="docs/img/video.png" alt="Guarda il video di Penguin Inc: Network Academy" width="720">
-  </a><br>
-  <b>▶ <a href="docs/video/penguin-inc-network-academy.mp4?raw=true">Guarda il video di presentazione</a></b> (MP4, 9 MB)
-</p>
+<!-- Video di presentazione. GitHub mostra il player solo per i video caricati come allegato (user-attachments),
+     e solo se il link è da solo su una riga, fuori dall'HTML. Lo stesso video è anche in docs/video/. -->
+
+https://github.com/user-attachments/assets/12c95ea3-2608-4565-a71f-4abe95f7fce6
+
+<p align="center"><sub>Il video è anche nel repository: <a href="docs/video/penguin-inc-network-academy.mp4?raw=true">docs/video/penguin-inc-network-academy.mp4</a> (MP4, 9 MB).</sub></p>
 
 ---
 
