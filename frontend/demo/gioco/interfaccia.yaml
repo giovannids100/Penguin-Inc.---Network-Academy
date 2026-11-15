@@ -1,0 +1,458 @@
+# Testi dell'interfaccia del client demo. Si possono cambiare a gioco acceso: basta ricaricare la pagina.
+#
+# - I segnaposto tra graffe ({nome}, {punti}…) vengono sostituiti dal gioco: lasciali com'è.
+# - Nei testi dei pannelli si può usare un po' di HTML: <b>grassetto</b>, <br> per andare a capo.
+#   Negli avvisi (quelli che compaiono in alto a destra) e nelle domande di conferma no: lì l'HTML si
+#   vedrebbe così com'è.
+# - Le missioni e i livelli (storie, ticket, indizi…) sono in accademia.yaml e pronto-soccorso.yaml;
+#   punteggi, dispositivi e tempi in impostazioni.yaml.
+
+generale:
+  nome: PT Academy
+  titolo_scheda: Penguin INC   # il nome della scheda del browser
+  motto: La rete la costruisci qui, ma vive davvero in <b>Cisco Packet Tracer</b>.
+  caricamento: Collegamento a Packet Tracer…
+  server_irraggiungibile: Server non raggiungibile
+  errore: "Errore {codice}"
+  fatto: Fatto
+  operazione_fallita: Operazione non riuscita
+  collegamento_pt: Collegamento a Packet Tracer
+  stato_pt: "Packet Tracer: {stato}"
+  errore_contenuti: "Errore nei file del gioco (vale la versione precedente): {errore}"
+  conferma: Conferma
+  annulla: Annulla
+  in_coda: "⏳ Packet Tracer sta finendo un'altra operazione: il tuo comando è in coda e parte appena tocca a lui."
+
+accesso:
+  codice: Codice di accesso
+  esempio: es. pingu42
+  entra: Entra
+
+schede:
+  accademia: 🎓 Accademia
+  accademia_sotto: costruisci
+  soccorso: 🚑 Pronto Soccorso
+  soccorso_sotto: ripara
+
+diario:
+  titolo: Diario
+  vuoto: "Ancora niente: inizia dalla missione a sinistra."
+
+strumenti:
+  sposta: Sposta
+  sposta_aiuto: Seleziona e trascina
+  cavo: Cavo
+  cavo_aiuto: Clicca due dispositivi per collegarli
+  togli: Togli
+  togli_aiuto: Clicca un dispositivo o un cavo per toglierlo
+  aggiungi: "Aggiungi:"
+  adatta: Adatta la vista
+
+tavolo:
+  vuoto: Il tavolo è vuoto.<br>Scegli un dispositivo da <b>Aggiungi</b> e clicca qui.
+  legenda_attivo: collegamento attivo
+  legenda_attesa: collegato ma non attivo
+  legenda_spenta: porta spenta
+  metti: "Clicca sul tavolo per mettere {articolo} (Esc per finire)"
+  cavo_primo: "Clicca il primo dispositivo, poi il secondo: il cavo e le porte li sceglie il gioco"
+  cavo_secondo: "Ora clicca il dispositivo da collegare a {nome}"
+  cavo_ricomincia: Clicca il primo dispositivo, poi il secondo
+  togli: Clicca un dispositivo o un cavo per toglierlo
+  cavo_fatto: "Cavo {a} ↔ {b} collegato"
+  conferma_togli_dispositivo: "Tolgo {nome} dal tavolo (e i suoi cavi)?"
+  conferma_stacca_cavo: "Stacco il cavo {a} {pa} ↔ {b} {pb}?"
+  info_cavo: "Cavo: {a} {pa} ↔ {b} {pb}"
+  pc_dhcp_senza_ip: DHCP… nessun IP
+  pc_senza_ip: senza IP
+  router_una_porta: 1 porta con IP
+  router_porte: "{numero} porte con IP"
+  router_senza_ip: nessun IP
+
+accademia:
+  missione: "Missione {numero} di {totale}"
+  manuale: 📖 Manuale
+  manuale_aiuto: La teoria in pillole che serve per questa challenge
+  manuale_titolo: 📖 Manuale · teoria in pillole
+  progressi: "Obiettivi raggiunti: <b>{fatti}</b> di {totale}"
+  verifica: Verifica
+  verifica_ping: 📡 Verifica
+  ricomincia: Ricomincia
+  ricomincia_aiuto: Svuota il tavolo e riparti dalla missione 1
+  conferma_ricomincia: Svuoto il tavolo di Packet Tracer e riparto dalla missione 1. Procedo?
+  finita_titolo: 🎉 Accademia completata!
+  finita_testo: >-
+    Hai costruito una rete con due sedi, DHCP e routing statico. Ora prova il <b>Pronto Soccorso</b>:
+    reti rotte da riparare.
+  vai_al_soccorso: Vai al Pronto Soccorso
+  ricomincia_da_zero: Ricomincia da zero
+  # le challenge: consigli, domande, viaggio del ping
+  consigli_da_jody: "💡 Consigli avuti: {numero} su {totale}. Per un altro, vai da Jody in ufficio."
+  consigli_finiti: "💡 Jody ti ha già dato tutti i consigli di questa challenge."
+  consigli_titolo: I consigli di Jody
+  ricomincia_challenge: ↺ Ricomincia la challenge
+  ricomincia_challenge_aiuto: Riporta il tavolo com'era all'inizio di questa challenge
+  conferma_ricomincia_challenge: >-
+    Riporto il tavolo di Packet Tracer com'era all'inizio della challenge «{titolo}»: quello che hai fatto in
+    questa challenge si perde. Procedo?
+  osserva: 🔍 Guarda il viaggio del ping
+  osserva_in_corso: Packet Tracer sta seguendo il ping passo per passo (10–30 secondi)…
+  traccia_titolo: "Il viaggio del ping da {da} a {a}"
+  traccia_arrivato: "✅ Il ping è arrivato e la risposta è tornata."
+  traccia_non_arrivato: "❌ Il ping non è arrivato: si ferma su {dove}. Controlla cavi e indirizzi, poi riprova."
+  traccia_andata: andata
+  traccia_ritorno: ritorno
+  traccia_colonna_dispositivo: Dispositivo
+  traccia_colonna_entra: Entra da
+  traccia_colonna_esce: Esce da
+  traccia_colonna_stato: Esito
+  traccia_inviato: inoltrato
+  traccia_accettato: arrivato
+  traccia_scartato: scartato
+  chiudi: Ho capito
+
+soccorso:
+  titolo: 🚑 Pronto Soccorso
+  intro: >-
+    Una rete che funzionava si è rotta. Ricevi un ticket con i sintomi raccontati dagli utenti: trova i
+    guasti e riparali. Se ti blocchi puoi chiedere un indizio.
+  guasti_del_livello: "{numero} guasti"
+  torna_al_livello: "← Torna al livello {numero}"
+  avviso_sostituzione: Avviare un livello sostituisce la rete aperta in Packet Tracer.
+  livello: "Livello {numero}"
+  guasto: "Guasto {numero}"
+  sintomo: "Sintomo: {sintomo}"
+  soluzione: "🛠️ <b>Soluzione:</b> {soluzione}"
+  verifica: 📡 Verifica
+  indizio: "💡 Indizio"
+  arrendo: Mi arrendo
+  livelli: Livelli
+  conferma_avvio: "Avvio il livello {numero}: la rete aperta in Packet Tracer verrà sostituita. Procedo?"
+  conferma_indizio: Vuoi un indizio su questo guasto?
+  conferma_arrendo: "Vuoi vedere la soluzione del guasto? Così il guasto conta come non risolto da te."
+
+pannello:
+  vuoto: <b>Seleziona un dispositivo</b> sul tavolo per configurarlo.
+  vuoto_aiuto: Con 🔌 <b>Cavo</b> colleghi due dispositivi, con 🗑️ <b>Togli</b> rimuovi.
+  rinomina: ✏️ Rinomina
+  togli: 🗑️ Togli
+  nuovo_nome: "Nuovo nome (lettere, numeri, - e _):"
+  conferma_togli: "Tolgo {nome} dal tavolo?"
+  applica: Applica
+  esegui: Esegui
+  in_esecuzione: … in esecuzione in Packet Tracer
+  errore_console: (errore)
+  accesa: accesa
+  spenta: spenta
+
+pc:
+  configurazione: Configurazione IP
+  statico: Statico
+  dhcp: DHCP
+  indirizzo_ricevuto: Indirizzo ricevuto
+  nessuno: nessuno
+  gateway: Gateway
+  rinnova: 🔄 Rinnova indirizzo
+  ip: Indirizzo IP
+  maschera: Maschera
+  dns: DNS (facoltativo)
+  dns_aiuto: Il server che traduce i nomi in indirizzi. 0.0.0.0 = lo toglie.
+  cavo_collegato: "Cavo: collegato a <b>{dispositivo}</b> {porta}"
+  cavo_scollegato: "Cavo: <b>non collegato</b>"
+  prompt: Prompt dei comandi
+  prompt_aiuto: "Comandi: ping, ipconfig, tracert, arp, nslookup. Un ping fallito impiega ~15 secondi."
+  chiedo_dhcp: "{nome}: chiedo un indirizzo al DHCP…"
+  configurato: "{nome} configurato"
+
+router:
+  porte: Porte
+  colonna_porta: Porta
+  colonna_ip: IP
+  colonna_stato: Stato
+  colonna_verso: Verso
+  scegli_porta: 👆 Clicca una porta per darle un IP o accenderla.
+  porta_accesa: Porta accesa (no shutdown)
+  porta_configurata: "{nome} {porta} configurata"
+  routing: 🗺️ Tabella di routing
+  routing_sotto: e rotte statiche
+  routing_vuota: vuota
+  legenda_routing: C = rete collegata · S = statica · O = OSPF
+  nuova_rotta: Nuova rotta statica
+  rete_destinazione: Rete di destinazione
+  via: Via (IP del router vicino)
+  aggiungi_rotta: Aggiungi rotta
+  togli_rotta: Togli rotta
+  conferma_togli_rotta: "Tolgo la rotta {rete} via {via}?"
+  rotta_aggiunta: Rotta aggiunta
+  rotta_tolta: Rotta tolta
+  dhcp: 📦 Servizio DHCP
+  dhcp_spento: spento
+  dhcp_pool: "{numero} pool"
+  nome_pool: Nome pool
+  rete: Rete
+  gateway_pc: Gateway da dare ai PC
+  dns: DNS (facoltativo)
+  escludi_da: Escludi dal pool, da (facoltativo)
+  escludi_a: fino a
+  esclusi: "Esclusi dal DHCP:"
+  togli_esclusi: Torna a darli via con il DHCP
+  modifica_pool: Modifica il pool (cambia i campi e premi «Crea o aggiorna il pool»)
+  togli_pool: Togli il pool
+  conferma_togli_pool: "Tolgo il pool DHCP «{pool}»? I PC in DHCP non riceveranno più un indirizzo da qui."
+  pool_tolto: Pool DHCP tolto
+  esclusi_tolti: Indirizzi di nuovo disponibili per il DHCP
+  crea_pool: Crea o aggiorna il pool
+  pool_creato: Pool DHCP creato
+
+switch:
+  porte: Porte
+  colonna_porta: Porta
+  colonna_verso: Verso
+  colonna_vlan: VLAN
+  colonna_stato: Stato
+  mostra_libere: mostra anche le porte libere
+  nessun_cavo: Nessun cavo collegato.
+  scegli_porta: 👆 Clicca una porta per accenderla, spegnerla o cambiarne la VLAN.
+  spegni: Spegni porta (shutdown)
+  accendi: Accendi porta (no shutdown)
+  trunk: "Porta trunk: porta tutte le VLAN verso il router o un altro switch."
+  vlan: VLAN della porta
+  imposta_vlan: Imposta VLAN
+  porta_cambiata: "{porta} {stato}"
+  vlan_impostata: "{porta} → VLAN {vlan}"
+
+sicurezza:
+  titolo: 🛡️ Sicurezza
+  sotto_router: ACL, password, controllo
+  sotto_switch: password, controllo
+  acl: Filtri del traffico (ACL)
+  nessuna_acl: nessuna ACL
+  nuova_acl: ＋ Nuova ACL
+  nuova_acl_titolo: Nuova ACL
+  modifica_acl: "Modifica ACL {acl}"
+  modifica: Modifica
+  standard: standard (guarda solo chi manda)
+  estesa: estesa (chi, verso dove, quale servizio)
+  applicata: "applicata su {porta}, {verso}"
+  non_applicata: non applicata a nessuna porta
+  nome_acl: Nome o numero
+  tipo: Tipo
+  porta: Applicala sulla porta
+  nessuna_porta: "— nessuna (solo definita) —"
+  verso: Verso
+  in: in ingresso (entra nel router)
+  out: in uscita (esce dal router)
+  azione: Azione
+  permetti: permetti
+  nega: nega
+  protocollo: Protocollo
+  protocollo_ip: tutto (ip)
+  protocollo_icmp: ping (icmp)
+  protocollo_tcp: tcp
+  protocollo_udp: udp
+  da: Da
+  a: Verso
+  porta_servizio: Porta
+  su: Sposta su
+  togli_regola: Togli regola
+  aggiungi_regola: ＋ Regola
+  deny_implicito: >-
+    Le regole si leggono dall'alto: vince la prima che corrisponde. In fondo c'è sempre un «nega
+    tutto» invisibile: se vuoi bloccare solo qualcosa, chiudi con «permetti any».
+  salva_acl: Salva e applica
+  acl_salvata: "ACL {acl} salvata"
+  acl_tolta: "ACL {acl} tolta"
+  conferma_togli_acl: "Tolgo l'ACL {acl} da {nome}? Viene staccata da tutte le porte."
+  acl_non_leggibile: "Non riesco a leggere questa ACL: modificala dalla console IOS."
+  password: Password di amministratore
+  enable_secret: Password di enable (enable secret)
+  enable_secret_esempio: almeno 4 caratteri, senza spazi
+  cifra: Cifra le password scritte nella configurazione
+  proteggi: Proteggi
+  protetto: "{nome} protetto"
+  niente_da_fare: Scrivi una password o spunta la cifratura.
+  login_titolo: La console chiede una password?
+  login_aiuto: >-
+    Se il dispositivo è stato protetto dalla console (o lo era già), dimmi le sue credenziali: le
+    provo subito e da lì in poi entro da solo.
+  utente: Utente
+  password_utente: Password dell'utente
+  accedi: Prova ed entra
+  utenti: Utenti locali
+  mostra_utenti: 👤 Mostra gli utenti
+  aggiorna_utenti: 👤 Aggiorna elenco
+  nessun_utente: Nessun utente locale.
+  privilegio: "privilegio {livello}"
+  password_chiaro: "⚠️ password in chiaro"
+  password_reversibile: "⚠️ password nascosta ma decifrabile (tipo 7)"
+  password_cifrata: "🔒 password cifrata (secret)"
+  conferma_togli_utente: "Cancello l'utente «{utente}» da {nome}? Chi usava quell'account non potrà più entrare."
+  utente_tolto: "Utente {utente} cancellato"
+  controllo: Controllo di sicurezza
+  controlla: 🔎 Controlla la sicurezza
+  nessuna_falla: Nessuna falla trovata.
+  gravita_alta: Grave
+  gravita_media: Media
+  gravita_bassa: Lieve
+
+firewall:
+  senza_zone: nessuna zona
+  zone: 🧱 Zone del firewall
+  zona: Zona
+  livello: Livello (0-100)
+  scegli_porta: "👆 Clicca una porta per farne una zona: inside (la rete interna, 100), dmz (i server pubblici, 50), outside (Internet, 0)."
+  togli_zona: Togli zona
+  conferma_togli_zona: "Tolgo la zona dalla porta {porta}? La porta si spegne."
+  zona_salvata: "Zona {zona} salvata"
+  regole: 📜 Regole
+  base: >-
+    Di base una zona può aprire connessioni verso le zone con livello più basso, mai il contrario: la
+    rete interna esce, Internet non entra. Le regole sono le eccezioni; le risposte tornano da sole.
+  nessuna_regola: nessuna regola (vale solo il comportamento di base)
+  modifica_regole: ✏️ Modifica le regole
+  da: Da zona
+  verso: Verso zona
+  destinazione: Destinazione
+  sorgente: Sorgente
+  vuoto_tutta_la_zona: (vuoto = tutta la zona)
+  regola_n: "Regola {numero}"
+  sposta_su: Sposta su (le regole valgono nell'ordine)
+  togli_regola: Togli la regola
+  da_indirizzo: "da {ip}"
+  rotte: 🧭 Rotte del firewall
+  rotte_sotto: dove sono le reti dietro i router
+  nessuna_rotta: nessuna rotta (conosce solo le reti delle sue porte)
+  tutta_la_zona: tutta la zona
+  salva_regole: Salva e applica
+  regole_salvate: Regole del firewall applicate
+  acl_scritte: Cosa ho scritto sul firewall (ACL dell'ASA)
+
+dns:
+  titolo: 📇 DNS
+  acceso: acceso
+  spento: spento
+  accendi: Accendi il DNS
+  spegni: Spegni il DNS
+  nessun_record: nessun nome
+  nuovo_record: Nuovo nome
+  nome: Nome (es. sito.azienda.test)
+  aggiungi: Aggiungi il nome
+  record_aggiunto: "Nome {nome} aggiunto"
+
+servizi:
+  titolo: 🔌 Servizi esposti
+  sotto: le porte aperte del server
+  mostra: Mostra i servizi
+  aggiorna: Aggiorna
+  http: Web (HTTP)
+  https: Web sicuro (HTTPS)
+  ftp: File (FTP)
+  email: Posta (SMTP e POP3)
+  aperta: aperta
+  chiusa: chiusa
+  accendi: Accendi
+  spegni: Spegni
+  acceso: acceso
+  spento: spento
+  cambiato: "{servizio} {stato}"
+  nota: >-
+    Ogni servizio acceso è una porta aperta verso il mondo: lascia acceso solo quello che serve.
+    SSH non è un servizio dei server di Packet Tracer: si accende sui router (Sicurezza).
+
+scansione:
+  titolo: 🔍 Scansione delle porte
+  sotto: come nmap
+  bersaglio: IP o nome del dispositivo, es. 172.16.0.10
+  avvia: Scansiona
+  aiuto: "Prova ad aprire una connessione su FTP, SSH, Telnet, SMTP, web, POP3 e HTTPS. Una porta filtrata richiede qualche secondo."
+  risultato: "Porte di <b>{ip}</b>:"
+  aperta: "🔓 aperta (qualcuno risponde)"
+  chiusa: "chiusa (l'host risponde, ma lì non c'è nessuno)"
+  filtrata: "🧱 filtrata (nessuna risposta: un firewall o un'ACL la blocca)"
+
+sniffer:
+  titolo: 📡 Sniffer
+  sotto: guarda i pacchetti che passano, come Wireshark
+  cattura: 📡 Cattura il traffico
+  aiuto: >-
+    Ascolta per qualche istante il traffico che passa da questo dispositivo e lo elenca pacchetto per
+    pacchetto: chi parla con chi, con quale protocollo e su quale porta.
+  da: Da
+  a: A
+  protocollo: Protocollo
+  esito: Esito
+  vuoto: Nessun pacchetto in questo intervallo.
+  stato_sent: inoltrato
+  stato_accepted: arrivato
+  stato_dropped: scartato
+  stato_buffered: in attesa
+
+limiti:
+  titolo: 🚦 Limiti di velocità
+  sotto: rate limiting
+  mostra: Mostra i limiti
+  aggiorna: Aggiorna
+  nessuno: nessun limite
+  porta: Porta (traffico in uscita)
+  kbps: Velocità massima (kbps, 0 = nessun limite)
+  applica: Applica
+  salvato: Limite aggiornato
+  nota: >-
+    Un limite di velocità impedisce a un flusso (per esempio un attacco) di saturare il collegamento.
+    Packet Tracer salva la configurazione ma non ne simula l'effetto sulla velocità.
+
+console:
+  titolo: ⌨️ Console IOS
+  sotto: per chi vuole provare i comandi veri
+  esempio: |-
+    un comando per riga, es.
+    configure terminal
+    interface GigabitEthernet0/0
+
+# I «?» accanto ai campi: si leggono passandoci sopra con il mouse.
+aiuti:
+  acl: >-
+    Un'ACL è un elenco di regole «permetti / nega» che il router controlla per ogni pacchetto che
+    passa da una porta. Serve a fare da firewall.
+  acl_nome: Un numero (1-99 per le standard, 100-199 per le estese) o un nome di una parola.
+  acl_tipo: >-
+    Standard: guarda solo da dove arriva il pacchetto. Estesa: anche verso dove va e per quale
+    servizio (es. il web, porta 80).
+  acl_porta: >-
+    La porta del router dove il filtro lavora. Di solito: il più vicino possibile a chi vuoi
+    bloccare.
+  acl_verso: >-
+    In ingresso: il traffico che entra nel router da quella porta. In uscita: quello che ne esce.
+  acl_indirizzo: >-
+    any = chiunque · un indirizzo (192.168.1.2) = un solo dispositivo · una rete
+    (192.168.1.0/24) = tutta la rete.
+  enable_secret: >-
+    La password chiesta da «enable», cioè per diventare amministratore del dispositivo. Senza,
+    chiunque arrivi alla console comanda.
+  cifra: >-
+    service password-encryption: le password scritte nella configurazione non si leggono più in
+    chiaro.
+  audit: Cerca le falle nella configurazione (password mancanti, scritte in chiaro, account sospetti).
+  fw_zone: >-
+    Ogni porta del firewall collega una zona: inside (la rete dell'azienda), dmz (i server che il mondo
+    deve raggiungere, come il sito), outside (Internet).
+  fw_zona: Il nome della zona. Con inside, dmz e outside il livello si propone da solo.
+  fw_livello: >-
+    Quanto ci si fida della zona: 100 = massimo (interna), 0 = per niente (Internet). Di base si aprono
+    connessioni solo verso livelli più bassi.
+  fw_regole: >-
+    Eccezioni alla regola di base. Esempio classico: da outside verso dmz, tcp 80, destinazione il
+    server web: permetti. Così Internet vede il sito ma non la rete interna.
+  fw_destinazione: "Vuoto = tutta la zona di arrivo; altrimenti un IP (172.16.0.10) o una rete (172.16.0.0/24)."
+  limite: >-
+    Il traffico che esce da quella porta non supera questa velocità. 64 kbps basta per una linea di
+    servizio, 1000 kbps è 1 Mbps.
+  utenti: >-
+    Gli account con cui si entra nel dispositivo. Un account che nessuno ha creato, o con la
+    password in chiaro, è una porta aperta per gli attaccanti. Le password non vengono mai mostrate.
+  ip: Il «numero civico» del dispositivo nella rete, es. 192.168.10.11. Deve essere unico.
+  maschera: Dice quanta parte dell'IP è la rete. 255.255.255.0 = i primi tre numeri sono la rete.
+  gateway: "L'IP del router nella tua rete: lì vanno i pacchetti diretti ad altre reti."
+  dhcp: Il PC chiede da solo IP, maschera e gateway a un server DHCP (di solito il router).
+  porta_accesa: Le porte dei router Cisco nascono spente. Una porta spenta (shutdown) non fa passare niente.
+  vlan: Una VLAN divide lo switch in «stanze» separate. Le porte nella stessa VLAN si vedono tra loro.
+  rotta: Indica al router dove mandare i pacchetti per una rete che non è collegata direttamente.

@@ -1,0 +1,708 @@
+# Accademia: le missioni guidate («challenge»), in ordine. I giorni della storia (storia.yaml) dicono quali
+# missioni fanno parte di ogni giorno.
+#
+# Per ogni missione:
+#   id         nome breve e unico (lettere minuscole, numeri, -). Non cambiarlo a partita iniziata:
+#              le missioni completate sono salvate per id.
+#   titolo, punti, storia
+#   rete       facoltativo: la topologia di partenza (una per giorno, nella prima challenge del giorno). «vuota» (il tavolo di Packet Tracer viene svuotato) oppure
+#              un file .pkt nella cartella reti/ (viene aperto in PT). Si prepara quando la missione comincia:
+#              alla fine della missione prima, oppure quando il giocatore si siede al computer per la prima
+#              volta; poi con «Ricomincia la challenge». Senza «rete» si continua dalla rete che c'è.
+#   tutorial   facoltativo, true: missione guidata (si vedono i passi, i loro «aiuto» e cosa manca). Senza:
+#              niente lista dei passi, solo quanti obiettivi sono raggiunti; l'aiuto si chiede al collega
+#              senior (consigli). I pop-up di aiuto sul monitor sono in storia.yaml («guida»).
+#   storia     la descrizione della challenge: è l'unico testo che il giocatore ha sempre davanti, quindi
+#              contiene tutto quello che serve per svolgerla (dispositivi, collegamenti, indirizzi). Con «|-»
+#              gli a capo restano: scrivi ogni frase, o ogni voce «•», su una riga sola.
+#   topologia  facoltativo, NON mostrato dal client Penguin Inc: metti le informazioni nella storia
+#   piano      facoltativo, NON mostrato dal client Penguin Inc: metti gli indirizzi nella storia
+#   consigli   facoltativo: i consigli del collega senior, dal più vago al più preciso. Si chiedono a Jody in
+#              ufficio: gratis o in cambio di un caffè, secondo il giorno (storia.yaml, «consigli_gratis»)
+#   teoria     concetti spiegati nel «Manuale» (pulsante accanto al titolo della challenge)
+#   passi      in ordine. Ogni passo ha «testo» (cosa fare), «aiuto» (come farlo: solo nei tutorial) e UNO tra:
+#                controllo: si spunta da solo mentre il giocatore lavora. O il nome di un controllo di
+#                           backend/missions.py (CONTROLLI), o scritto qui secondo il piano:
+#                             dispositivi: {PC1: pc, SW1: switch}       esistono con quel nome e tipo
+#                             cavi / cavi_attivi: [[PC1, SW1], …]       cavo diretto (e attivo, luce verde)
+#                             niente_cavi: [[SW1, SW2]]                 NON c'è un cavo diretto
+#                             indirizzi: {PC1: 10.10.10.11/24}          IP e maschera esatti
+#                             gateway: {PC1: 10.10.10.1}                gateway esatto
+#                             porte_router: {R1: [{verso: SW1, ip: 10.10.10.1/24}]}   IP e porta accesa
+#                             ip_distinti: [PC1, PC2]                   nessun IP duplicato
+#                           (più chiavi insieme: devono passare tutte)
+#                verifica:  traffico vero, provato quando il giocatore preme «Verifica»; passano tutte:
+#                             - ping: {da: PC1, a: 10.10.10.12}         (a: IP o «@PC2»)
+#                             - attraversa: {da: PC00, a: PC10, via: R1}   arriva passando da R1 (traccia)
+#                           e le altre verifiche dei livelli (bloccato, web, porta…: pronto-soccorso.yaml)
+#                ping:      nome di un piano di ping tollerante di missions.py (PIANI_PING)
+#                domanda:   {testo, scelte: […], giusta: N (da 1), spiegazione}: si completa rispondendo
+#                osserva:   {da, a, spiegazione}: il giocatore guarda il viaggio del ping nella simulazione
+#
+# Il server rilegge questo file da solo quando lo salvi. Se c'è un errore lo scrive nel suo registro
+# (e in /api/health) e continua con la versione precedente.
+
+missioni:
+
+  # Le descrizioni dicono solo l'obiettivo: niente nomi dei dispositivi e niente indirizzi. Il «come» è nei
+  # consigli di Jody e nel Manuale. I controlli (backend/missions.py, «challenge senza nomi») riconoscono la
+  # forma della rete, qualunque nome e indirizzamento il giocatore scelga.
+
+  - id: g1-lan
+    titolo: "1.1 · La prima LAN"
+    punti: 100
+    tutorial: true          # guidata: si vedono i passi, i loro aiuti e cosa manca
+    rete: vuota             # si parte dal tavolo vuoto: se in Packet Tracer c'è qualcosa, viene tolto
+    storia: |-
+      L'azienda ha comprato due computer e uno switch, ma una rete ancora non c'è. Costruisci una piccola rete in cui i due computer si parlano.
+      È il tutorial: i passi qui sotto ti guidano uno alla volta.
+    consigli:
+      - I due computer vanno collegati allo switch, e i cavi devono diventare verdi.
+      - I due computer devono stare nella stessa rete, ma ognuno con il suo indirizzo.
+      - >-
+        Un esempio: il primo PC con IP 192.168.1.1 e maschera 255.255.255.0. Al secondo dai un indirizzo che
+        cambia solo nell'ultimo numero, con la stessa maschera.
+    teoria:
+      - concetto: Switch
+        spiegazione: >-
+          Collega i dispositivi della stessa rete locale (LAN) e consegna ogni messaggio solo a chi è
+          destinato, grazie agli indirizzi MAC.
+      - concetto: Indirizzo IP e maschera
+        spiegazione: >-
+          L'IP (es. 192.168.1.1) è il «numero civico» del dispositivo; la maschera 255.255.255.0 dice che i
+          primi tre numeri sono la rete (192.168.1) e l'ultimo il dispositivo. Due PC si parlano direttamente
+          se sono nella stessa rete; due PC con lo stesso IP litigano.
+      - concetto: Ping
+        spiegazione: Un «ci sei?» mandato a un altro dispositivo. Se risponde, la strada funziona.
+      - concetto: ARP
+        spiegazione: >-
+          Prima di parlare con l'altro PC, il primo deve scoprire il suo indirizzo MAC: chiede a tutta la LAN
+          «chi ha questo IP?» e solo l'altro PC risponde. Succede la prima volta, poi se lo ricorda.
+    passi:
+      - testo: Metti sul tavolo due PC e uno switch
+        aiuto: Scegli «PC» tra i pulsanti «Aggiungi» e clicca due volte sul tavolo, poi «Switch».
+        controllo: pc_e_switch
+      - testo: Collega i due PC allo switch e aspetta che i cavi diventino verdi
+        aiuto: >-
+          Strumento «Cavo»: clicca un PC e poi lo switch, e lo stesso per l'altro PC. Il pallino sul cavo passa
+          da giallo a verde in una trentina di secondi.
+        controllo: pc_collegati_e_attivi
+      - testo: Dai ai due PC un indirizzo IP della stessa rete
+        aiuto: >-
+          Seleziona un PC → «Statico» → IP e maschera → «Applica». Stessa rete vuol dire stessi primi numeri e
+          stessa maschera; l'ultimo numero cambia. Il gateway non serve.
+        controllo: pc_nella_stessa_rete
+      - testo: I due PC si fanno un ping, in tutte e due le direzioni
+        aiuto: >-
+          Puoi provarlo tu dal «Prompt dei comandi» di un PC. Poi premi «Verifica»: il gioco fa partire i ping
+          veri in Packet Tracer.
+        verifica:
+          - piano: lan
+      - testo: Osserva il viaggio del pacchetto nella simulazione
+        aiuto: "Premi «Guarda il viaggio del ping»: Packet Tracer segue il ping da un PC all'altro passo per passo."
+        osserva:
+          coppia: lan
+          spiegazione: >-
+            Il ping va dal primo PC allo switch e dallo switch all'altro PC, poi la risposta torna indietro. Al
+            primo ping, prima ancora del ping, il PC manda una richiesta ARP a tutta la LAN («chi ha questo
+            IP?»): solo l'altro PC risponde con il suo indirizzo MAC, e da lì lo switch sa su quale porta
+            consegnare.
+      - testo: Serve un router per questa comunicazione?
+        aiuto: Pensa a dove si trovano i due PC.
+        domanda:
+          testo: I due PC si parlano. Per farlo, serve un router?
+          scelte:
+            - Sì, tutto il traffico passa sempre da un router
+            - No, sono nella stessa rete locale e basta lo switch
+            - Sì, serve per dare gli indirizzi IP ai PC
+          giusta: 2
+          spiegazione: >-
+            Esatto: i due PC sono nella stessa rete, quindi si parlano direttamente attraverso lo switch. Il
+            router serve per uscire dalla LAN, verso altre reti.
+
+  - id: g1-esterno
+    titolo: "1.2 · Collegare la LAN all'esterno"
+    punti: 150
+    storia: |-
+      I computer devono raggiungere una rete esterna di prova. Costruiscila accanto alla tua LAN, con un suo switch e un server, e collegala alla LAN con un router.
+      Obiettivo: i computer raggiungono il server esterno, e il server riesce a rispondere.
+    consigli:
+      - >-
+        Un router ha due «gambe»: una nella LAN dell'ufficio e una nella rete esterna. Ogni gamba prende un
+        indirizzo della rete in cui si trova, e va accesa.
+      - >-
+        I PC, per uscire dalla loro rete, devono sapere a chi mandare i pacchetti: è il gateway, cioè la gamba
+        del router nella loro LAN.
+      - >-
+        La rete esterna è una rete diversa dalla tua LAN: il server prende un indirizzo di quella rete e, come
+        gateway, la gamba del router verso di lui. Altrimenti le risposte non tornano.
+    teoria:
+      - concetto: Router
+        spiegazione: Collega reti diverse e decide la strada che ogni pacchetto deve fare.
+      - concetto: Interfaccia
+        spiegazione: >-
+          Ogni porta del router sta in una rete diversa e ha il suo IP. Sui router Cisco le porte nascono
+          spente: vanno accese (no shutdown).
+      - concetto: Gateway
+        spiegazione: >-
+          L'IP del router nella tua LAN. Quando un PC vuole parlare con un'altra rete, manda il pacchetto lì.
+      - concetto: Reti direttamente connesse
+        spiegazione: >-
+          Il router conosce da solo le reti collegate alle sue porte («Connected»): per queste non serve
+          scrivere rotte. Niente NAT, per ora.
+      - concetto: Percorso di ritorno
+        spiegazione: >-
+          Un ping va e torna: anche il server esterno deve sapere come rispondere, e lo fa mandando la risposta
+          al suo gateway. Quel gateway dev'essere proprio il router.
+    passi:
+      - testo: Costruisci la rete esterna, separata dalla LAN, con un suo switch e un server collegato
+        controllo: rete_esterna
+      - testo: Aggiungi un router e collegalo con un cavo allo switch dei PC e con un altro cavo allo switch della rete esterna
+        controllo: router_tra_lan_ed_esterno
+      - testo: >-
+          Dai un indirizzo alle due porte del router, ognuna nella rete del suo lato, e accendile. Dai un indirizzo
+          anche al server esterno, con la porta del router verso di lui come gateway
+        controllo: porte_lan_ed_esterno
+      - testo: Sui PC imposta come gateway l'indirizzo della porta del router verso la LAN
+        controllo: gateway_dei_pc
+      - testo: "Premi «Verifica»: i PC devono raggiungere il server esterno e il server deve rispondere"
+        verifica:
+          - piano: esterno
+
+  - id: g1-reparti
+    titolo: "1.3 · Separare due reparti"
+    punti: 200
+    storia: |-
+      L'azienda apre un secondo reparto, con i suoi computer, che deve stare in una rete separata dal primo: i due reparti si parlano solo attraverso il router.
+      Obiettivo: ogni PC parla con quelli del suo reparto e con quelli dell'altro.
+    consigli:
+      - >-
+        Due reparti vuol dire due reti diverse: ogni reparto ha il suo switch, collegato al router. Mai un cavo
+        diretto tra i due switch.
+      - >-
+        Ogni reparto ha la sua rete e il suo gateway: la porta del router collegata al suo switch. Scegli una
+        rete per il nuovo reparto, poi dai gli indirizzi ai suoi PC.
+      - >-
+        Se un PC parla con il suo reparto ma non con l'altro, il problema è nella sua configurazione: guarda
+        bene tutti i campi, gateway compreso.
+    teoria:
+      - concetto: Reti diverse
+        spiegazione: >-
+          Due reparti in due reti diverse (es. 10.10.10.0/24 e 10.10.20.0/24) non si vedono direttamente: li
+          collega il router.
+      - concetto: Un gateway per reparto
+        spiegazione: >-
+          Ogni reparto usa come gateway l'IP della porta del router nella sua rete.
+      - concetto: Niente scorciatoie
+        spiegazione: >-
+          Un cavo diretto tra i due switch unirebbe i reparti saltando il router: le reti non sarebbero più
+          separate.
+    passi:
+      - testo: Aggiungi il nuovo reparto, con un suo switch e almeno un PC collegato
+        controllo: nuovo_reparto
+      - testo: Collega lo switch del nuovo reparto a una porta libera del router (mai un cavo diretto tra i due switch)
+        controllo: reparti_collegati_al_router
+      - testo: Dai alla porta del router verso il nuovo reparto un indirizzo di una rete nuova, diversa dal primo reparto, e accendila
+        controllo: porte_dei_reparti
+      - testo: >-
+          Dai ai PC del nuovo reparto un indirizzo di quella rete, ognuno diverso, e come gateway la porta del router
+          verso il loro switch
+        controllo: ogni_reparto_nella_sua_rete
+      - testo: "Premi «Verifica»: i PC dei due reparti devono parlarsi, passando dal router"
+        verifica:
+          - piano: reparti
+
+  # ───────────────────────────── Giorno 2 ─────────────────────────────
+  # Ogni giorno parte da una sua topologia (il giorno 1 dal tavolo vuoto): la 2.1 apre giorno2.pkt (due reparti
+  # già funzionanti dietro un router, con una porta libera), la 2.2 e la 2.3 continuano dalla rete che c'è.
+
+  - id: g2-sala
+    titolo: "2.1 · Una sala server"
+    punti: 200
+    rete: giorno2.pkt
+    storia: |-
+      L'azienda apre una sala server in un'altra stanza. Collegala alla rete dei reparti attraverso un secondo router. Nella sala servono due server, con un indirizzo fisso, e un PC di prova che riceve il suo indirizzo in automatico.
+      Obiettivo: i reparti e la sala server si raggiungono a vicenda.
+    consigli:
+      - >-
+        I due router si parlano con un cavo tutto loro: è una piccola rete di transito, con un indirizzo per
+        parte. Dietro il secondo router c'è la rete della sala server.
+      - >-
+        Un router conosce solo le reti collegate alle sue porte: per arrivare alle reti dietro l'altro router
+        gli serve una rotta statica, da una parte e dall'altra.
+      - >-
+        Il DHCP lo fa il router della sala server: un pool con la rete della sala e il gateway. I server hanno
+        un indirizzo fisso: escludilo dal pool, così il DHCP non lo regala al PC di prova.
+    teoria:
+      - concetto: Rete di transito
+        spiegazione: >-
+          Il collegamento tra due router è una rete piccolissima (spesso /30: due soli indirizzi utili), una
+          gamba per router.
+      - concetto: Rotta statica
+        spiegazione: >-
+          «Per la rete X passa da Y»: la si scrive a mano sul router. Serve all'andata e anche al ritorno,
+          sull'altro router.
+      - concetto: DHCP
+        spiegazione: >-
+          Un servizio che regala a ogni PC indirizzo, maschera e gateway. Lo può fare il router: gli dici la rete
+          (il pool) e quali indirizzi non dare via.
+      - concetto: Indirizzi esclusi
+        spiegazione: >-
+          I server tengono un indirizzo fisso, così tutti sanno sempre dove trovarli. Quegli indirizzi vanno
+          esclusi dal pool, altrimenti il DHCP potrebbe darli a qualcun altro.
+    passi:
+      - testo: Aggiungi un secondo router e collegalo con un cavo alla porta libera del primo
+        controllo: due_router_collegati
+      - testo: >-
+          Dai alle due porte del cavo tra i router due indirizzi della stessa rete (la rete di transito) e accendile
+        controllo: collegamento_tra_router_configurato
+      - testo: >-
+          Collega al secondo router uno switch per la sala server, con due server e un PC di prova, e dai alla porta
+          del router verso lo switch un indirizzo di una rete nuova
+        controllo: sala_server
+      - testo: Dai ai due server un indirizzo fisso della sala server, con la porta del secondo router come gateway
+        controllo: server_con_ip_fisso
+      - testo: >-
+          Attiva il DHCP sul secondo router per la rete della sala server, escludendo dal pool gli indirizzi dei
+          server, e imposta il PC di prova su DHCP
+        controllo: pc_di_prova_in_dhcp
+      - testo: >-
+          Aggiungi le rotte statiche: sul primo router verso la sala server, sul secondo verso i due reparti, passando
+          per l'altro router sulla rete di transito
+        controllo: rotte_complete
+      - testo: "Premi «Verifica»: i reparti e la sala server devono raggiungersi nei due sensi"
+        verifica:
+          - piano: sala_server
+
+  - id: g2-nomi
+    titolo: "2.2 · Nomi al posto degli indirizzi"
+    punti: 250
+    storia: |-
+      Nessuno vuole ricordare gli indirizzi dei server. Aggiungi alla sala server un server che traduca i nomi in indirizzi.
+      Obiettivo: da ogni computer dell'azienda i server si raggiungono con questi nomi: gestione.azienda.test, posta.azienda.test e dns.azienda.test.
+    consigli:
+      - >-
+        Il nuovo server fa da DNS: accendi il servizio e scrivi i nomi, ognuno con l'indirizzo del server a cui
+        deve portare.
+      - >-
+        I computer devono sapere chi è il loro DNS. A quelli in DHCP lo dice il pool del router; a quelli con
+        l'indirizzo fisso lo scrivi tu, nel campo DNS.
+      - >-
+        Rinominare l'icona di un server non basta: conta il nome scritto nel DNS. Prova da un PC con
+        «nslookup gestione.azienda.test».
+    teoria:
+      - concetto: DNS
+        spiegazione: >-
+          La rubrica della rete: traduce un nome (gestione.azienda.test) nell'indirizzo IP del server.
+      - concetto: Record A
+        spiegazione: Una riga della rubrica, «nome → indirizzo IPv4».
+      - concetto: Resolver
+        spiegazione: >-
+          Il server DNS che un computer interroga. Il computer lo conosce dal DHCP o perché è scritto nella sua
+          configurazione.
+      - concetto: nslookup
+        spiegazione: >-
+          Il comando per controllare un nome. Dal «Prompt dei comandi» di un PC scrivi nslookup seguito dal nome,
+          per esempio «nslookup sito.esempio.test». Se tutto funziona risponde con due righe importanti: «Server»,
+          il DNS che il PC ha interrogato, e, sotto «Name», l'«Address» a cui porta il nome. Se il PC non conosce
+          il DNS, o il nome non è scritto nel DNS, la risposta non arriva.
+    passi:
+      - testo: "Aggiungi un terzo server nella sala server, con un indirizzo fisso: farà da DNS"
+        controllo: tre_server_in_sala
+      - testo: >-
+          Sul nuovo server accendi il DNS e scrivi i tre nomi, ognuno con l'indirizzo del server giusto. Poi fai
+          conoscere il DNS a tutti: nel pool DHCP per il PC di prova (poi «Rinnova indirizzo» sul PC), nel campo DNS
+          dei PC con indirizzo fisso
+        verifica:
+          - piano: nomi
+      - testo: >-
+          Controlla tu la risoluzione dei nomi dal prompt dei comandi di un PC: ogni nome deve portare al server
+          giusto (come si fa? apri il Manuale). Poi premi «Verifica»
+        verifica:
+          - piano: risoluzione_da_un_pc
+
+  - id: g2-firewall
+    titolo: "2.3 · Filtrare gli accessi alla sala server"
+    punti: 300
+    storia: |-
+      La sala server è troppo esposta. Fai passare tutto il traffico verso la sala server da un firewall.
+      Obiettivo: la gestione (porta 22) è accessibile solo dalla postazione dell'amministratore, un PC dei reparti a tua scelta; posta e nomi funzionano per tutti; tutto il resto verso la sala server è bloccato.
+    consigli:
+      - >-
+        Il firewall va in mezzo tra i due router, al posto del cavo diretto: nessuna strada deve aggirarlo.
+        Ogni suo lato è una zona, con un indirizzo nella rete di transito di quel lato.
+      - >-
+        Ora il firewall e i router devono sapere dove sono le reti: il firewall ha bisogno di rotte verso i
+        reparti e verso la sala server, e i router devono passare dal firewall.
+      - >-
+        Di base una zona più bassa non entra in una più alta. Poi aggiungi le eccezioni: la porta 22 della
+        gestione solo dall'indirizzo dell'amministratore, la posta (TCP 25) e il DNS (UDP 53) per tutti.
+    teoria:
+      - concetto: Firewall
+        spiegazione: >-
+          Decide quale traffico può passare tra le sue zone. Tutto quello che non è permesso viene scartato.
+      - concetto: Zone e livelli
+        spiegazione: >-
+          Ogni lato del firewall è una zona con un livello di sicurezza: dalla zona più alta si esce, nella più
+          alta si entra solo con una regola.
+      - concetto: Stateful
+        spiegazione: >-
+          Il firewall ricorda le connessioni che ha lasciato passare: le risposte tornano indietro da sole.
+      - concetto: Porte dei servizi
+        spiegazione: SSH 22 (gestione), SMTP 25 (posta), DNS 53, HTTP 80.
+    passi:
+      - testo: Togli il cavo diretto tra i due router e metti il firewall in mezzo, collegato a tutti e due
+        controllo: firewall_tra_i_router
+      - testo: >-
+          Configura il firewall: una zona per lato (lato reparti più bassa, lato sala server più alta), con un
+          indirizzo nella rete di quel lato; le rotte del firewall verso i reparti e verso la sala server; le rotte
+          dei router che passano dal firewall. Poi la regola: porta TCP 22 della gestione permessa solo
+          dall'indirizzo dell'amministratore
+        verifica:
+          - piano: firewall_gestione
+      - testo: Aggiungi le regole per la posta (TCP 25) e per il DNS (UDP 53), permesse a tutti i reparti
+        verifica:
+          - piano: firewall_servizi
+      - testo: Tutto il resto verso la sala server resta bloccato (per esempio il ping alla posta)
+        verifica:
+          - piano: firewall_blocco
+
+  # ── giorno 3: la rete di un cliente da proteggere (reti/giorno3.pkt): DMZ, VPN e cloud
+  - id: g3-dmz
+    titolo: "3.1 · Una DMZ per il sito"
+    punti: 300
+    rete: giorno3.pkt
+    storia: |-
+      Un cliente ha già una rete funzionante: il router R1 collega Internet, il server web del sito (WEB) e, attraverso R2, la rete interna con i PC dei dipendenti e il server INTRANET. Ma è tutto aperto: da Internet si arriva ovunque. Metti i firewall e crea una DMZ per il server web.
+      Obiettivo: il sito (porta 80 di WEB) si apre da Internet e dalla rete interna, e i dipendenti continuano a uscire su Internet; da Internet non si entra nella rete interna, e nemmeno dal server web, se un giorno qualcuno lo violasse.
+    consigli:
+      - >-
+        Servono due firewall, uno per ogni confine: tra Internet e R1, e tra R1 e R2. La rete del server web, in
+        mezzo ai due, è la DMZ: un'area cuscinetto, né fuori né dentro.
+      - >-
+        Ogni firewall prende il posto di un cavo: due nuove reti di transito, e le rotte da rifare. Router e
+        firewall devono sapere da che parte stanno le reti degli altri, anche al ritorno.
+      - >-
+        Pensa ai livelli: Internet il più basso, la DMZ in mezzo, la rete interna il più alto. Dall'alto verso il
+        basso si passa da soli; dal basso verso l'alto solo con una regola, e l'unica eccezione che serve è la
+        porta 80 del server web.
+    teoria:
+      - concetto: DMZ
+        spiegazione: >-
+          «Zona demilitarizzata»: la rete dei server che devono essere visibili da Internet (sito, posta). Sta
+          tra due firewall: se un server della DMZ viene violato, l'attaccante non è ancora dentro la rete interna.
+      - concetto: Difesa a strati
+        spiegazione: >-
+          Più barriere una dopo l'altra: per arrivare ai PC dei dipendenti bisogna superare due firewall, non uno.
+      - concetto: Esporre un servizio
+        spiegazione: >-
+          Da Internet si apre solo quello che serve: una regola per la porta di quel servizio (HTTP 80) verso
+          quel server, e niente altro.
+      - concetto: Rotte dopo un firewall
+        spiegazione: >-
+          Un firewall in mezzo a un cavo crea due reti nuove. Il firewall ha bisogno di rotte verso le reti che
+          non tocca direttamente, e i router devono mandare il traffico al firewall invece che al vecchio vicino.
+    passi:
+      - testo: Togli il cavo diretto tra INTERNET e R1 e metti un firewall in mezzo, collegato a tutti e due
+        controllo: firewall_verso_internet
+      - testo: Togli il cavo diretto tra R1 e R2 e metti un secondo firewall in mezzo, collegato a tutti e due
+        controllo: firewall_interno
+      - testo: >-
+          Configura i due firewall: una zona per lato con il suo livello (Internet il più basso, la rete interna il
+          più alto), gli indirizzi delle nuove reti di transito, le rotte dei firewall e dei router. Poi la
+          regola che apre a Internet il sito: la porta TCP 80 del server web
+        verifica:
+          - piano: dmz_web
+      - testo: Controlla che da Internet e dalla DMZ non si entri nella rete interna, poi premi «Verifica»
+        verifica:
+          - piano: dmz_isolata
+
+  - id: g3-vpn
+    titolo: "3.2 · Lavorare da casa"
+    punti: 300
+    storia: |-
+      I dipendenti vogliono lavorare anche da casa, collegati in VPN. Prepara la rete dove arrivano i loro computer: una sottorete VPN, dietro un firewall tutto suo, collegato a R2.
+      Obiettivo: dalla VPN si aprono i servizi web dell'azienda (porta 80 del server INTRANET e del sito WEB), ma non si entra nei PC della rete interna; da Internet nella rete VPN non si entra.
+    consigli:
+      - >-
+        Il firewall della VPN si collega a una porta libera di R2; dall'altra parte uno switch con un PC, che
+        rappresenta il computer di un dipendente a casa. La sua rete è la sottorete VPN.
+      - >-
+        Chi sta in VPN è meno fidato di chi sta in ufficio: dai alla zona VPN un livello più basso di quella verso
+        R2, e apri con una regola solo la porta 80. Il resto resta chiuso da solo.
+      - >-
+        Le risposte devono trovare la strada di casa: R2 e il firewall interno hanno bisogno di una rotta verso la
+        sottorete VPN, R1 anche, e il firewall della VPN di una rotta verso il resto della rete.
+    teoria:
+      - concetto: VPN
+        spiegazione: >-
+          «Rete privata virtuale»: un tunnel cifrato attraverso Internet che porta il computer di casa dentro la
+          rete dell'azienda, come se fosse in ufficio. In Packet Tracer il tunnel non c'è: rappresentiamo dove
+          arrivano i dipendenti, cioè la loro sottorete.
+      - concetto: Sottorete VPN
+        spiegazione: >-
+          I computer collegati in VPN ricevono indirizzi di una rete tutta loro. Così il firewall li riconosce e
+          decide cosa possono raggiungere.
+      - concetto: Minimo privilegio
+        spiegazione: >-
+          Si dà accesso solo a quello che serve per lavorare (i servizi web), non a tutta la rete: un portatile
+          perso o infetto fa meno danni.
+    passi:
+      - testo: >-
+          Collega un nuovo firewall a una porta libera di R2 e, dall'altra parte, uno switch con il PC di un
+          dipendente in VPN, con un indirizzo di una sottorete nuova
+        controllo: rete_vpn
+      - testo: >-
+          Configura il firewall della VPN (zone, indirizzi, rotte) e le rotte verso la sottorete VPN, poi la regola
+          che apre solo la porta TCP 80
+        verifica:
+          - piano: vpn_servizi
+      - testo: Controlla che dalla VPN non si entri nei PC della rete interna, poi premi «Verifica»
+        verifica:
+          - piano: vpn_limitata
+
+  - id: g3-cloud
+    titolo: "3.3 · Servizi nel cloud"
+    punti: 350
+    storia: |-
+      Alcuni servizi dell'azienda si spostano nel cloud. Integra la rete del cloud: uno switch con il servizio cloud, collegato a R2 attraverso un altro firewall.
+      Obiettivo: il servizio cloud (porta 80) si usa dalla rete interna e dalla VPN; dal cloud invece non si aprono connessioni verso la rete interna.
+    consigli:
+      - >-
+        È la stessa forma della VPN: un firewall su una porta libera di R2, poi uno switch e il cloud (lo trovi in
+        «Aggiungi»), con un indirizzo di una rete nuova.
+      - >-
+        Il cloud è di qualcun altro: la sua zona ha un livello più basso di quella verso R2. Così la rete interna
+        ci arriva da sola, mentre il cloud non entra.
+      - >-
+        Ricorda i dipendenti in VPN: il loro firewall deve lasciarli passare verso la porta 80 del cloud, e le
+        rotte verso la rete del cloud servono anche a loro.
+    teoria:
+      - concetto: Cloud
+        spiegazione: >-
+          Servizi (siti, archivi, posta) che girano sui server di un fornitore, non in azienda. Si raggiungono
+          attraverso la rete come un server qualsiasi.
+      - concetto: Fiducia zero
+        spiegazione: >-
+          Non ci si fida di una rete solo perché è «nostra»: anche il collegamento con il cloud passa da un
+          firewall, e si apre solo quello che serve.
+      - concetto: Chi apre la connessione
+        spiegazione: >-
+          Un firewall distingue chi inizia: la rete interna può aprire connessioni verso il cloud e ricevere le
+          risposte, ma il cloud non può aprirne verso la rete interna.
+    passi:
+      - testo: >-
+          Collega un altro firewall a una porta libera di R2 e, dall'altra parte, uno switch con il servizio cloud,
+          con un indirizzo di una rete nuova
+        controllo: rete_cloud
+      - testo: >-
+          Configura il firewall del cloud (zone, indirizzi, rotte) e le rotte verso la rete del cloud: il servizio
+          deve essere raggiungibile sulla porta 80 dalla rete interna e dalla VPN
+        verifica:
+          - piano: cloud_servizi
+      - testo: Controlla che dal cloud non si entri nella rete interna, poi premi «Verifica»
+        verifica:
+          - piano: cloud_isolato
+
+  # ── giorno 4: attacchi in corso (reti/giorno4.pkt). Il traffico sospetto lo genera «traffico» (per lo sniffer).
+  - id: g4-forza-bruta
+    titolo: "4.1 · Tentativi a raffica"
+    punti: 350
+    rete: giorno4.pkt
+    traffico:
+      - {da: PC3, comando: "telnet @FILE 21"}
+      - {da: PC1, comando: "web http://@WEB"}
+      - {da: PC2, comando: "ping @WEB"}
+      - {da: PC4, comando: "ping @FILE"}
+      - {da: PC6, comando: "web http://@WEB"}
+    storia: |-
+      Il server dei file (FILE) registra tentativi di accesso falliti, uno dopo l'altro: qualcuno sta provando tutte le password possibili sui suoi servizi di accesso (FTP e SSH). Non arrivano da Internet: è una macchina della rete dell'azienda, compromessa.
+      Obiettivo: trova la macchina che tenta gli accessi e scollegala dalla rete; tutti gli altri devono continuare a lavorare.
+    consigli:
+      - >-
+        Per vedere chi parla con il server devi ascoltare il traffico: lo sniffer è nella scheda di ogni
+        dispositivo. Mettiti in ascolto vicino al server, dove passano tutte le richieste.
+      - >-
+        Nella cattura cerca le connessioni verso le porte di accesso del server, la 21 (FTP) e la 22 (SSH): chi
+        legge pagine web o fa ping non c'entra. L'indirizzo di partenza ti dice chi è.
+      - >-
+        Una macchina compromessa non si spegne e non si cancella: si isola, staccando il suo cavo o spegnendo la
+        porta dello switch a cui è collegata. Così smette di attaccare e resta lì da analizzare.
+    teoria:
+      - concetto: Forza bruta
+        spiegazione: >-
+          Un attacco che prova una password dopo l'altra finché non trova quella giusta. Si riconosce perché le
+          richieste di accesso arrivano a raffica, sempre dallo stesso indirizzo.
+      - concetto: Sniffer
+        spiegazione: >-
+          Uno strumento (come Wireshark) che cattura i pacchetti che passano da un dispositivo: per ognuno mostra
+          chi lo manda, a chi, con quale protocollo e su quale porta.
+      - concetto: Porte di accesso
+        spiegazione: >-
+          FTP (21) per i file, SSH (22) e Telnet (23) per i comandi a distanza: sono le porte preferite da chi
+          prova a indovinare le password.
+      - concetto: Isolare
+        spiegazione: >-
+          La prima risposta a una macchina compromessa: toglierla dalla rete senza spegnerla, perché nella sua
+          memoria ci sono le tracce dell'attacco.
+    passi:
+      - testo: Ascolta il traffico vicino al server dei file e rispondi alla domanda
+        domanda:
+          testo: Da quale indirizzo arrivano i tentativi di accesso al server dei file?
+          scelte: ["192.168.10.11", "192.168.10.13", "192.168.20.22", "203.0.113.66"]
+          giusta: 2
+          spiegazione: >-
+            Esatto: è 192.168.10.13 a bussare di continuo alla porta 21 del server. Ora trova quale computer ha
+            quell'indirizzo.
+      - testo: Scollega dalla rete la macchina con quell'indirizzo, senza cancellarla e senza toccare le altre
+        controllo: macchina_isolata
+      - testo: "Premi «Verifica»: la macchina compromessa non raggiunge più il server, gli altri sì"
+        verifica:
+          - bloccato: {da: PC3, a: FILE}
+          - ping: {da: PC1, a: "@FILE"}
+          - ping: {da: PC5, a: "@WEB"}
+
+  - id: g4-ddos
+    titolo: "4.2 · Un'ondata di richieste"
+    punti: 400
+    traffico:
+      - {da: PC5, comando: "web http://@WEB"}
+      - {da: PC6, comando: "web http://@WEB"}
+      - {da: PC7, comando: "web http://@WEB"}
+      - {da: PC8, comando: "web http://@WEB"}
+      - {da: PC9, comando: "web http://@WEB"}
+      - {da: PC1, comando: "ping @FILE"}
+    storia: |-
+      Il sito interno (WEB) è lentissimo: gli arriva un'ondata di richieste, tutte insieme, da tante macchine diverse. È un attacco di negazione del servizio (DDoS). Attenzione però: tra quelle macchine ci sono anche colleghi che il sito lo usano per lavorare.
+      Obiettivo: scopri da dove arriva l'ondata e contienila, senza che i dipendenti perdano l'accesso al sito.
+    consigli:
+      - >-
+        Ascolta il traffico vicino al server web: guarda gli indirizzi di partenza. Sono tanti, ma hanno qualcosa
+        in comune.
+      - >-
+        Bloccare tutta quella rete sembra la soluzione, ma lì lavorano anche dei colleghi: resterebbero senza sito
+        anche loro. Meglio rallentare le richieste che bloccarle.
+      - >-
+        Un limite di velocità si mette su una porta di un router, in uscita, sulla strada tra chi attacca e il
+        server: nella scheda del router c'è la sezione dei limiti.
+    teoria:
+      - concetto: DoS e DDoS
+        spiegazione: >-
+          Negazione del servizio: tante richieste da far crollare un server. Distribuita (DDoS) quando arrivano da
+          molte macchine insieme, spesso computer infetti comandati da qualcun altro (una botnet).
+      - concetto: Rate limiting
+        spiegazione: >-
+          Un limite alla quantità di traffico che passa in un secondo. Le richieste normali passano lo stesso,
+          l'ondata viene rallentata e il server respira.
+      - concetto: Il rimedio peggiore del male
+        spiegazione: >-
+          Bloccare un'intera sottorete ferma l'attacco ma anche chi lavora: per l'utente il risultato è lo stesso
+          del DDoS, il sito non si apre.
+      - concetto: In Packet Tracer
+        spiegazione: >-
+          Il limite si configura davvero sul router (traffic shaping), ma Packet Tracer non ne simula l'effetto
+          sulla velocità: qui si impara dove e come metterlo.
+    passi:
+      - testo: Ascolta il traffico vicino al server web e rispondi alla domanda
+        domanda:
+          testo: Da dove arriva l'ondata di richieste al sito?
+          scelte:
+            - Da un solo PC dell'ufficio
+            - Da tante macchine della stessa sottorete, 192.168.20.0/24
+            - Da Internet
+            - Dal server dei file
+          giusta: 2
+          spiegazione: >-
+            Sì: tante macchine diverse, tutte della sottorete 192.168.20.0/24. Ma in quella sottorete lavorano
+            anche dei colleghi.
+      - testo: Metti un limite di velocità sulla strada tra quella sottorete e il server web
+        verifica:
+          - limitato: {da: PC5, a: WEB}
+      - testo: "Premi «Verifica»: i dipendenti, anche quelli di quella sottorete, devono continuare ad aprire il sito"
+        verifica:
+          - porta: {da: PC9, a: "@WEB", porta: 80, passa: true}
+          - porta: {da: PC1, a: "@WEB", porta: 80, passa: true}
+
+  - id: g4-reverse-shell
+    titolo: "4.3 · Una porta sul retro"
+    punti: 450
+    traffico:
+      - {da: PC2, comando: "telnet @PC-ESTERNO 4444"}
+      - {da: PC1, comando: "web http://@NEWS"}
+      - {da: PC4, comando: "ping @NEWS"}
+      - {da: PC5, comando: "web http://@WEB"}
+    storia: |-
+      L'antivirus segnala PC2: qualcuno potrebbe averlo preso sotto controllo da fuori. Spesso è il PC stesso a chiamare l'attaccante su Internet (una «reverse shell»), così il firewall non se ne accorge. Entra nella macchina e osservane il traffico.
+      Obiettivo: trova la connessione verso l'attaccante, interrompila e segnala il suo indirizzo; PC2 deve continuare a usare la rete (il sito interno e Internet).
+    consigli:
+      - >-
+        Metti lo sniffer proprio su PC2: vedrai tutto quello che manda. Tra le pagine web e i ping, c'è una
+        connessione che un PC normale non apre.
+      - >-
+        Guarda la porta: 80 è il web, ma una porta alta come la 4444 non è di nessun servizio normale. L'indirizzo
+        di destinazione è quello dell'attaccante.
+      - >-
+        Staccare PC2 fermerebbe anche il suo lavoro: blocca solo l'indirizzo dell'attaccante, con una regola (ACL)
+        sul router che porta a Internet.
+    teoria:
+      - concetto: Reverse shell
+        spiegazione: >-
+          Il PC infetto apre lui la connessione verso l'attaccante e gli dà i comandi. Visto che parte da dentro,
+          i firewall che bloccano solo il traffico in entrata la lasciano passare.
+      - concetto: Indicatore di compromissione
+        spiegazione: >-
+          Un indizio che una macchina è stata violata: un indirizzo esterno sconosciuto, una porta insolita, un
+          traffico a orari strani.
+      - concetto: ACL
+        spiegazione: >-
+          Una lista di regole sul router: permetti o nega il traffico in base a indirizzi (e porte). Una riga
+          «nega quell'indirizzo» taglia fuori l'attaccante, il resto passa.
+      - concetto: Segnalare
+        spiegazione: >-
+          Dopo aver fermato un attacco si scrive un rapporto: cosa è successo, quale macchina, quale indirizzo
+          dell'attaccante. Serve a bloccarlo ovunque e a capire come è entrato.
+    passi:
+      - testo: Osserva il traffico di PC2 e rispondi alla domanda
+        domanda:
+          testo: Cosa c'è di strano nel traffico di PC2?
+          scelte:
+            - Un ping verso un sito di notizie
+            - Una connessione verso Internet sulla porta 4444, che nessun servizio normale usa
+            - Una pagina del sito interno
+            - Niente, è traffico normale
+          giusta: 2
+          spiegazione: >-
+            Proprio così: PC2 apre una connessione verso un indirizzo di Internet sulla porta 4444. È la porta sul
+            retro dell'attaccante.
+      - testo: Interrompi la connessione verso l'attaccante, senza staccare PC2 dalla rete
+        verifica:
+          - porta: {da: PC2, a: "@PC-ESTERNO", porta: 4444, passa: false}
+          - bloccato: {da: PC2, a: PC-ESTERNO}
+      - testo: "PC2 deve continuare a usare la rete: il sito interno e i siti di Internet"
+        verifica:
+          - ping: {da: PC2, a: "@WEB"}
+          - porta: {da: PC2, a: "@NEWS", porta: 80, passa: true}
+      - testo: Scrivi il rapporto per il Capo
+        domanda:
+          testo: Qual è l'indirizzo dell'attaccante da segnalare?
+          scelte: ["192.168.10.12", "203.0.113.20", "203.0.113.66", "10.10.10.10"]
+          giusta: 3
+          spiegazione: >-
+            203.0.113.66: l'indirizzo che PC2 chiamava sulla porta 4444. Con questo il Capo può farlo bloccare
+            anche ai clienti.
+
+messaggi:
+  tutte_completate: "Hai completato tutte le missioni!"
+  controllo_in_corso: "Controllo la missione «{titolo}»"
+  passo_mancante: "Passo {numero} non ancora fatto: {passo}. {motivo}"
+  passo_mancante_diario: "«{titolo}»: manca il passo {numero}"
+  niente_da_pingare: "Non trovo due dispositivi pronti per il ping del passo {numero}."
+  ping_in_corso: "Ping vero in Packet Tracer: {etichetta} ({ip})"
+  ping_fallito: "Il ping {etichetta} ({ip}) non ha avuto risposta."
+  ping_fallito_consiglio: "Controlla cavi, IP, maschere e gateway."
+  ping_fallito_diario: "«{titolo}»: ping fallito"
+  completata: "Missione «{titolo}» completata!"
+  completata_diario: "🏆 Missione «{titolo}» completata!"
+  svuoto_tavolo: "Svuoto il tavolo di Packet Tracer"
+  ricominciata: "Tavolo pulito: si parte dalla missione 1."
+  ricominciata_diario: "Accademia ricominciata da zero: tavolo vuoto"

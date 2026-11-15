@@ -1,0 +1,322 @@
+/* Penguin Inc: l'ufficio in pixel art, i dialoghi e i cartelli (scripts/storia.js).
+ * L'ufficio ha sempre i suoi colori «notte antartica», anche con il tema chiaro del sistema. */
+:root {
+  --pi-notte: #0e1424;
+  --pi-blu: #1d2b4f;
+  --pi-blu-2: #2a3d6b;
+  --pi-ghiaccio: #e8f0fa;
+  --pi-bordo: #0a0f1c;
+  --pi-oro: #f5c542;
+  --pi-arancio: #f59e0b;
+  --pi-testo: #142033;
+}
+
+.pix { font-family: "Press Start 2P", ui-monospace, monospace; letter-spacing: .02em; }
+
+/* ───────────── ufficio ───────────── */
+.ufficio {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  background: radial-gradient(ellipse at 50% 40%, #18223d 0%, var(--pi-notte) 70%);
+  color: var(--pi-ghiaccio);
+  cursor: url(/assets/penguin/ui/cursore.png) 3 2, auto;
+  user-select: none;
+}
+.hud {
+  display: flex; align-items: center; gap: 16px; padding: 8px 16px;
+  background: var(--pi-blu); border-bottom: 4px solid var(--pi-bordo);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .25);
+}
+.hud-giorno { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.hud-giorno b { font-size: 13px; color: var(--pi-oro); }
+.hud-giorno span { font-family: VT323, ui-monospace, monospace; font-size: 22px; }
+.hud-obiettivo {
+  flex: 1; min-width: 0; font-family: VT323, ui-monospace, monospace; font-size: 20px; line-height: 1.1;
+  color: #c8d6ee; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hud-obiettivo b { color: var(--pi-ghiaccio); font-weight: normal; }
+.hud-destra { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+.hud-buoni, .hud-punti {
+  font-family: "Press Start 2P", ui-monospace, monospace; font-size: 12px;
+  background: var(--pi-bordo); padding: 6px 10px; border-radius: 4px;
+}
+.hud-buoni b { color: var(--pi-arancio); }
+.hud-punti b { color: var(--pi-oro); }
+.hud .btn { background: var(--pi-blu-2); color: var(--pi-ghiaccio); border-color: var(--pi-bordo); }
+
+.scena-wrap {
+  position: relative; margin: 10px auto 0;
+  width: min(calc(100vw - 32px), calc((100vh - 84px) * 4 / 3));
+}
+.scena {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  border: 4px solid var(--pi-bordo); border-radius: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+}
+.scena .sfondo, .sprite, .ritratto, .avvio-monitor img, .war-room { image-rendering: pixelated; }
+.scena .sfondo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sprite { position: absolute; background-repeat: no-repeat; pointer-events: none; }
+.zona {
+  position: absolute; background: transparent; border: 2px dashed transparent; border-radius: 4px;
+  padding: 0; cursor: pointer; z-index: 500;
+}
+.zona:hover, .zona:focus-visible { border-color: rgba(245, 197, 66, .85); background: rgba(245, 197, 66, .08); outline: none; }
+.etichetta {
+  position: absolute; transform: translate(-50%, -100%); z-index: 600; pointer-events: none;
+  font-family: "Press Start 2P", ui-monospace, monospace; font-size: clamp(8px, 1vw, 11px);
+  background: var(--pi-bordo); color: var(--pi-ghiaccio); padding: 5px 8px; border-radius: 3px; white-space: nowrap;
+}
+.segnale {
+  position: absolute; transform: translate(-50%, -100%); z-index: 550; pointer-events: none;
+  font-family: "Press Start 2P", ui-monospace, monospace; font-size: clamp(18px, 2.6vw, 30px);
+  color: var(--pi-oro); text-shadow: 2px 2px 0 var(--pi-bordo), -2px -2px 0 var(--pi-bordo);
+  animation: salta .9s ease-in-out infinite;
+}
+@keyframes salta { 50% { margin-top: -8px; } }
+.scena.allarme::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 700;
+  background: rgba(220, 38, 38, .22); animation: allarme 1s steps(2) infinite;
+}
+@keyframes allarme { 50% { background: rgba(220, 38, 38, 0); } }
+
+/* ───────────── dialoghi ───────────── */
+.dialogo {
+  position: absolute; left: 2%; right: 2%; bottom: 2.5%; z-index: 800;
+  display: flex; gap: 14px; align-items: flex-end; cursor: pointer;
+  animation: entra .18s ease-out;
+}
+@keyframes entra { from { transform: translateY(12px); opacity: 0; } }
+.dialogo .ritratto {
+  width: clamp(80px, 13vw, 160px); aspect-ratio: 1; flex: none;
+  background: var(--pi-ghiaccio); border: 4px solid var(--pi-bordo); border-radius: 6px;
+}
+.dialogo.chi-boss .ritratto { background: #fde2e2; }
+.dialogo.chi-foca .ritratto { background: #3b2a4a; }
+.fumetto {
+  position: relative; flex: 1; min-height: clamp(80px, 13vw, 160px);
+  background: var(--pi-ghiaccio); color: var(--pi-testo);
+  border: 4px solid var(--pi-bordo); border-radius: 6px; padding: 10px 16px 22px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .3);
+}
+.fumetto .chi { font-family: "Press Start 2P", ui-monospace, monospace; font-size: clamp(9px, 1.1vw, 13px); color: #1d4ed8; margin-bottom: 6px; }
+.dialogo.chi-boss .chi { color: #b91c1c; }
+.dialogo.chi-foca .chi { color: #6d28d9; }
+.dialogo.chi-jr .chi { color: #334155; }
+.fumetto .chi small { font-family: VT323, ui-monospace, monospace; font-size: 18px; color: #64748b; margin-left: 6px; }
+.fumetto .testo { margin: 0; font-family: VT323, ui-monospace, monospace; font-size: clamp(20px, 2.1vw, 28px); line-height: 1.15; }
+.fumetto .testo b { color: #1d4ed8; font-weight: normal; background: #dbe7ff; padding: 0 3px; }
+.fumetto .avanti {
+  position: absolute; right: 12px; bottom: 6px; font-family: VT323, ui-monospace, monospace; font-size: 17px;
+  color: #64748b; animation: lampeggia 1s steps(2) infinite;
+}
+@keyframes lampeggia { 50% { opacity: .2; } }
+.fumetto .scelte { display: flex; gap: 10px; margin-top: 10px; }
+.fumetto .scelte .btn {
+  font-family: "Press Start 2P", ui-monospace, monospace; font-size: 11px; padding: 10px 18px;
+  background: #fff; color: var(--pi-testo); border: 3px solid var(--pi-bordo); border-radius: 4px;
+}
+.fumetto .scelte .btn.primary { background: #2563eb; color: #fff; }
+
+/* ───────────── cartelli e passaggio al monitor ───────────── */
+.cartello {
+  position: fixed; inset: 0; z-index: 900; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 18px; padding: 16px; text-align: center;
+  background: rgba(6, 9, 18, .94); color: var(--pi-ghiaccio); animation: dissolvi .4s ease-out;
+}
+@keyframes dissolvi { from { opacity: 0; } }
+.cartello .grande { font-size: clamp(22px, 4vw, 40px); color: var(--pi-oro); }
+.cartello .pix { font-size: clamp(11px, 1.6vw, 16px); }
+.cartello .cliente { font-family: VT323, ui-monospace, monospace; font-size: 24px; color: #9fb3d6; }
+.cartello p { max-width: 560px; font-family: VT323, ui-monospace, monospace; font-size: 24px; line-height: 1.2; margin: 0; }
+.cartello .war-room { width: min(256px, 50vw); border: 4px solid var(--pi-bordo); border-radius: 6px; }
+.avvio-monitor {
+  position: fixed; inset: 0; z-index: 950; display: flex; align-items: center; justify-content: center;
+  background: var(--pi-notte);
+}
+.avvio-monitor img { width: min(90vw, 120vh); animation: zoom .65s ease-in forwards; }
+@keyframes zoom { from { transform: scale(.45); opacity: .4; } 70% { opacity: 1; } to { transform: scale(1.15); opacity: 1; } }
+
+/* ───────────── il «monitor» (l'interfaccia di PT Academy dentro la storia) ───────────── */
+body.storia .tabs { display: none; }
+.btn-ufficio { display: none; }
+body.storia .btn-ufficio {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font: 600 13px system-ui, sans-serif; color: var(--ink);
+  background: var(--panel); border: 2px solid var(--line); border-radius: 8px; padding: 5px 10px;
+}
+body.storia .btn-ufficio:hover { border-color: var(--bad); }
+.btn-ufficio .chiudi {
+  width: 22px; height: 20px; display: inline-block; image-rendering: pixelated;
+  background: url(/assets/penguin/ui/chiudi.png) 0 0 / 66px 20px no-repeat;
+}
+.btn-ufficio:hover .chiudi { background-position: -22px 0; }
+.btn-ufficio:active .chiudi { background-position: -44px 0; }
+.app-giorno, .app-buoni { display: none; }
+body.storia .app-buoni { display: inline-block; }
+body.storia .app-giorno {
+  display: inline-block; font-family: "Press Start 2P", ui-monospace, monospace; font-size: 10px;
+  background: var(--brand-soft); color: var(--brand); padding: 7px 10px; border-radius: 6px; margin-left: 12px;
+}
+.storia-cliente {
+  font-size: 13px; color: var(--muted); padding: 2px 4px 8px;
+}
+.storia-ticket { border: 2px solid var(--brand); }
+.storia-fine { border: 2px solid var(--ok); }
+.storia-fine p { font-weight: 600; }
+
+/* ───────────── guida: i pop-up di Jody sul monitor (storia.js, «guida» in storia.yaml) ───────────── */
+.guida-pop {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 40;
+  width: min(520px, calc(100vw - 32px)); display: flex; gap: 12px; align-items: flex-start;
+  background: #fffdf2; border: 3px solid var(--mo-bordo, #0e1a33); border-top: 12px solid #f5c542; border-radius: 4px;
+  box-shadow: 4px 4px 0 rgba(10, 15, 28, .32); padding: 12px 14px; font-family: var(--mo-testo, system-ui);
+  animation: guida-entra .25s ease-out;
+}
+.guida-ritratto { width: 64px; height: 64px; flex: none; image-rendering: pixelated; border: 2px solid var(--mo-bordo, #0e1a33); background: #dce8fb; }
+.guida-testo { flex: 1; min-width: 0; }
+.guida-chi { font-family: var(--mo-pixel, monospace); font-size: 8px; color: var(--muted, #56688a); }
+.guida-titolo { display: block; font-family: var(--mo-pixel, monospace); font-size: 10px; font-weight: normal; line-height: 1.5; color: var(--mo-titolo, #2c4a7c); margin-top: 4px; }
+.guida-pop p { margin: 6px 0 10px; font-size: 16px; line-height: 1.35; color: var(--ink, #142033); }
+.guida-evidenzia { outline: 4px solid #f5c542 !important; outline-offset: 2px; animation: guida-lampeggia 1s ease-in-out infinite; }
+@keyframes guida-entra { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes guida-lampeggia { 50% { outline-color: rgba(245, 197, 66, .25); } }
+@media (prefers-reduced-motion: reduce) { .guida-pop, .guida-evidenzia { animation: none; } }
+
+@media (max-width: 760px) {
+  .guida-pop { bottom: 12px; padding: 10px; gap: 8px; }
+  .guida-ritratto { width: 44px; height: 44px; }
+  .hud { flex-wrap: wrap; gap: 8px; }
+  .hud-obiettivo { order: 3; flex-basis: 100%; white-space: normal; }
+  /* sul telefono il dialogo va sotto la scena, invece di coprirla */
+  .dialogo { position: static; margin-top: 10px; }
+  .dialogo .ritratto { width: 64px; }
+  .fumetto { min-height: 0; }
+}
+
+/* ───────────── collaudo (PTA_COLLAUDO=1): pannello dei cheat per il debug ───────────── */
+.collaudo { position: fixed; left: 14px; bottom: 14px; z-index: 990; font-family: "Pixelify Sans", system-ui, sans-serif; }
+.collaudo-tasto {
+  width: 46px; height: 46px; font-size: 22px; cursor: pointer; background: #f5c542; color: #0e1a33;
+  border: 3px solid #0e1a33; border-radius: 4px; box-shadow: 0 3px 0 #0e1a33;
+}
+.collaudo-tasto:active { transform: translateY(3px); box-shadow: none; }
+.collaudo-pannello {
+  display: none; position: absolute; left: 0; bottom: 56px; width: 300px; padding: 10px 12px;
+  background: #fff8d6; color: #142033; border: 3px solid #0e1a33; border-top: 12px solid #b8860b;
+  border-radius: 4px; box-shadow: 4px 4px 0 rgba(10, 15, 28, .35);
+}
+.collaudo.aperto .collaudo-pannello { display: block; }
+.collaudo-pannello h3 { font-family: "Press Start 2P", ui-monospace, monospace; font-size: 10px; margin: 0 0 4px; color: #7a5a00; }
+.collaudo-pannello .muted { font-size: 12px; margin: 0 0 8px; color: #6b5a2e; }
+.collaudo-riga { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.collaudo-riga > span { font-size: 13px; font-weight: 600; min-width: 92px; }
+.collaudo-pannello .switch-toggle { display: flex; margin: 0 0 6px; font-size: 14px; color: #142033; }
+
+/* ───────────── schermata iniziale: titolo e nome del protagonista ───────────── */
+.titolo {
+  position: fixed; inset: 0; z-index: 920; display: grid; place-items: center; padding: 16px; overflow: hidden;
+  background: var(--pi-notte); font-family: "Pixelify Sans", system-ui, sans-serif; color: var(--pi-testo);
+}
+/* l'ufficio sullo sfondo, scuro e un po' sfocato */
+.titolo::before {
+  content: ""; position: absolute; inset: -20px; image-rendering: pixelated;
+  background: url(/assets/penguin/scene/ufficio.png) center / cover no-repeat;
+  filter: blur(2px) brightness(.45) saturate(.8);
+}
+/* neve in pixel che cade */
+.titolo-neve { position: absolute; inset: 0; pointer-events: none; overflow: hidden; opacity: .85; }
+.titolo-neve::before, .titolo-neve::after {
+  content: ""; position: absolute; inset: -100% 0 0; background-repeat: repeat;
+  background-image: radial-gradient(circle at 2px 2px, #fff 1.6px, transparent 2px);
+  background-size: 97px 113px; animation: cade 14s linear infinite; image-rendering: pixelated;
+}
+.titolo-neve::after { background-size: 151px 89px; animation-duration: 22s; opacity: .6; }
+@keyframes cade { to { transform: translateY(50%); } }
+.titolo-card {
+  position: relative; width: min(440px, 100%); text-align: center; padding: 22px 26px 18px;
+  background: var(--pi-ghiaccio); border: 4px solid var(--pi-bordo); border-top: 18px solid #2c4a7c;
+  border-radius: 6px; box-shadow: 6px 6px 0 rgba(0, 0, 0, .45);
+  animation: entra .35s ease-out;
+}
+.titolo-logo {
+  margin: 4px 0 6px; font: clamp(22px, 5vw, 32px) "Press Start 2P", ui-monospace, monospace; color: #2c4a7c;
+  text-shadow: 3px 3px 0 #f5c542; letter-spacing: .02em;
+}
+.titolo-sotto { margin: 0 0 14px; font: 22px VT323, ui-monospace, monospace; color: #3d4f70; }
+.titolo-pinguino { position: relative; width: 128px; margin: 0 auto 16px; }
+.titolo-pinguino img {
+  width: 128px; height: 128px; display: block; image-rendering: pixelated;
+  background: #fff; border: 4px solid var(--pi-bordo); border-radius: 6px;
+}
+.titolo-targhetta {
+  position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); max-width: 180px;
+  font: 10px "Press Start 2P", ui-monospace, monospace; background: #f5c542; color: var(--pi-bordo);
+  border: 3px solid var(--pi-bordo); border-radius: 3px; padding: 5px 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.titolo label {
+  display: block; margin: 10px 0 6px; font: 11px "Press Start 2P", ui-monospace, monospace; color: #2c4a7c;
+}
+.titolo input {
+  width: 100%; text-align: center; font: 28px VT323, ui-monospace, monospace; color: var(--pi-testo);
+  background: #fff; border: 3px solid var(--pi-bordo); border-radius: 3px; padding: 4px 10px;
+}
+.titolo input:focus { outline: 3px solid #f5c542; outline-offset: 0; }
+.titolo .err { margin: 6px 0 0; min-height: 1.2em; font-size: 14px; color: #d9443c; }
+.titolo-azioni { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.titolo-azioni .btn {
+  font: 11px "Press Start 2P", ui-monospace, monospace; padding: 12px 14px; color: var(--pi-testo);
+  background: #fff; border: 3px solid var(--pi-bordo); border-radius: 3px; box-shadow: 0 4px 0 var(--pi-bordo);
+  cursor: url(/assets/penguin/ui/mano.png) 8 1, pointer; position: relative;
+}
+.titolo-azioni .btn.primary { background: #2f6fd6; color: #fff; }
+.titolo-azioni .btn:hover { filter: brightness(1.06); }
+.titolo-azioni .btn:active { top: 4px; box-shadow: none; }
+.titolo-nota { margin: 14px 0 0; font-size: 13px; color: #56688a; }
+.titolo { cursor: url(/assets/penguin/ui/cursore.png) 3 2, auto; }
+.titolo input { cursor: text; }
+
+/* ───────────── musica e promozione finale ───────────── */
+.tasto-musica {
+  position: fixed; right: 14px; bottom: 14px; z-index: 995; width: 46px; height: 46px; font-size: 20px;
+  cursor: pointer; background: #dfe9f8; color: #0e1a33; border: 3px solid #0e1a33; border-radius: 4px;
+  box-shadow: 0 3px 0 #0e1a33;
+}
+.tasto-musica:active { transform: translateY(3px); box-shadow: none; }
+.promozione-targhetta {
+  padding: 14px 28px; background: #f5c542; color: #0e1a33; border: 4px solid #0e1a33; border-radius: 6px;
+  box-shadow: 0 6px 0 #0e1a33; animation: promozione .6s cubic-bezier(.2, 1.6, .4, 1);
+}
+.promozione-targhetta .pix { font-size: clamp(18px, 3vw, 28px); }
+.promozione-targhetta .cliente { color: #0e1a33; }
+@keyframes promozione { from { transform: scale(.2) rotate(-8deg); opacity: 0; } }
+
+/* ───────────── titoli di coda ───────────── */
+.cartello.crediti { z-index: 1000; justify-content: flex-start; overflow-y: auto; padding: 32px 16px; }
+.crediti > .grande { margin-top: auto; }
+.crediti > .btn { margin-bottom: auto; }
+.crediti-rullo { display: flex; flex-direction: column; gap: 26px; animation: rullo .9s ease-out; }
+.crediti-rullo section { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.crediti-rullo .pix { color: var(--pi-oro); margin-bottom: 4px; }
+.crediti a { color: #9fd0ff; text-underline-offset: 3px; }
+.crediti a:hover { color: #fff; }
+@keyframes rullo { from { transform: translateY(40px); opacity: 0; } }
+.titolo-crediti {
+  display: block; margin: 10px auto 0; padding: 2px 6px; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 13px; color: #2f6fd6; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ───────────── war room (giorno 4): si parla con il Capo, seduto a capotavola ───────────── */
+.war-room-scena {
+  position: absolute; inset: 0; z-index: 650; background: #070a14; animation: dissolvi .4s ease-out;
+  transition: opacity .3s;
+}
+.war-room-scena.chiudi { opacity: 0; }
+.war-room-scena .war-room-sfondo {
+  position: absolute; left: 20%; top: 0; width: 60%; height: 100%; image-rendering: pixelated;
+}
+.war-room-scena .sprite { z-index: 2; }
+.war-room-capo { animation: agitato .35s steps(2) infinite; }
+@keyframes agitato { 50% { transform: translateX(3%) rotate(2deg); } }
+.war-room-nome {
+  position: absolute; left: 3%; top: 4%; color: #ff6b6b; font-size: clamp(10px, 1.5vw, 15px);
+  text-shadow: 2px 2px 0 #000; letter-spacing: .1em;
+}

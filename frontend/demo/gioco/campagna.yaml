@@ -1,0 +1,66 @@
+# Campagna: la storia di Penguins Inc., a giorni. Lega le missioni dell'Accademia e i livelli del
+# Pronto Soccorso in un racconto con personaggi, dialoghi, buoni caffè e colleghi da pagare per un aiuto.
+#
+#   valuta          come si chiama la moneta del gioco: nome (plurale), singolare, icona
+#   buoni_iniziali  quanti se ne hanno all'inizio
+#   personaggi      id: {nome, ruolo, icona}. L'id (minuscolo) si usa nei dialoghi e negli aiuti
+#   giorni          in ordine. Il giorno in corso è il primo non completato. Per ogni giorno:
+#     numero, titolo
+#     missioni      id di missioni di accademia.yaml da completare (anche nessuna)
+#     livelli       numeri di livelli di pronto-soccorso.yaml da completare (anche nessuno)
+#     buoni         ricompensa a fine giornata
+#     prima, dopo   dialoghi a inizio e a fine giornata: righe «- personaggio: testo»
+#     aiuti         i colleghi a cui si può chiedere aiuto, pagando:
+#       id          nome breve e unico nel giorno
+#       collega     id di un personaggio
+#       costo       in buoni (0 = gratis)
+#       richiesta   la domanda del giocatore (il testo del pulsante)
+#       risposta    cosa dice il collega (si vede solo dopo aver pagato)
+#       livello     facoltativo: l'aiuto si chiede solo mentre si gioca quel livello del giorno
+#       azioni      facoltativo: cosa fa il collega sulla rete vera di Packet Tracer
+#                     comandi:      {dispositivo, righe: [righe IOS]}   «@PC3» = l'IP attuale di PC3
+#                     spegni_porta: {dispositivo, porta}
+#                     ip_host:      {dispositivo, ip, maschera, gateway}
+#                     aggiungi:     {tipo, nome, x, y}      tipo: router, switch, pc, server (se non c'è già)
+#                     collega:      {a, b}                  un cavo tra due dispositivi (se non ci sono già)
+#                     ip_porta:     {dispositivo, verso, ip, maschera}   IP sulla porta del router verso «verso»
+#                   Se un'azione fallisce, i buoni vengono restituiti.
+#   finale          dialogo quando la campagna è finita
+#   messaggi        facoltativo: per riscrivere i messaggi del gioco (elenco in backend/contenuti.py,
+#                   MESSAGGI_CAMPAGNA)
+#
+# Il server rilegge questo file da solo quando lo salvi.
+
+valuta: {nome: buoni caffè, singolare: buono caffè, icona: "☕"}
+buoni_iniziali: 1
+
+personaggi:
+  pinna: {nome: Pinna, ruolo: pinguina senior, icona: "🐧"}
+  nevio: {nome: Nevio, ruolo: "il capo, un orso polare", icona: "🐻‍❄️"}
+  tina: {nome: Tina, ruolo: sistemista, icona: "🛠️"}
+  krill: {nome: Krill, ruolo: sicurezza informatica, icona: "🛡️"}
+
+giorni:
+
+  # I giorni sono stati riscritti: il giorno 1 ha tre challenge (missioni g1-* di accademia.yaml), con le
+  # topologie di partenza come file .pkt. I giorni successivi arriveranno con le loro challenge.
+  - numero: 1
+    titolo: Costruire e collegare le prime reti
+    missioni: [g1-lan, g1-esterno, g1-reparti]
+    buoni: 1
+    prima:
+      - pinna: >-
+          Benvenuto in Penguins Inc.! Io sono Pinna, la tua senior. Qui facciamo reti e
+          sicurezza per i clienti di tutto il Polo.
+      - pinna: >-
+          Il tavolo che vedi è collegato a Packet Tracer: quello che costruisci qui succede
+          davvero. Oggi tre challenge: la prima LAN, l'uscita verso l'esterno e due reparti separati.
+    dopo:
+      - pinna: Ottimo lavoro! Ecco il tuo primo buono caffè guadagnato.
+
+finale:
+  - nevio: >-
+      Da oggi non sei più una matricola: sei un pinguino senior di Penguins Inc. Congratulazioni!
+  - pinna: >-
+      E indovina? Domani arriva un nuovo assunto, al suo primo giorno. Tocca a te insegnargli
+      tutto… e offrirgli il primo caffè.

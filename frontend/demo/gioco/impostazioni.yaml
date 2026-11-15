@@ -1,0 +1,33 @@
+# Impostazioni del gioco. Si possono cambiare a gioco acceso: il server rilegge il file da solo.
+# Ogni voce è facoltativa: se la togli vale il valore predefinito (quello scritto qui).
+
+punteggio:
+  guasto_riparato: 100        # punti per ogni guasto riparato nel Pronto Soccorso
+  costo_indizio: 25           # punti tolti a quel guasto per ogni indizio chiesto
+  bonus_senza_indizi: 50      # bonus se il livello si chiude senza indizi e senza arrendersi
+  # I punti di ogni missione dell'Accademia sono in accademia.yaml.
+
+# Dispositivi che il giocatore può aggiungere al tavolo. I tipi sono fissi (router, switch, firewall, pc, server,
+# cloud: un server presentato come servizio cloud fittizio);
+# per ognuno:
+#   modello    modello di Packet Tracer: deve esistere in PT (le porte cambiano da modello a modello)
+#   prefisso   inizio dei nomi generati: R → R1, R2…
+#   nome, icona, articolo   come lo chiama l'interfaccia («Clicca sul tavolo per mettere un router»)
+# Togliendo un tipo da qui sparisce anche il suo pulsante «Aggiungi».
+dispositivi:
+  router: {modello: "2911", prefisso: R, nome: Router, icona: "🧭", articolo: un router}
+  switch: {modello: 2960-24TT, prefisso: SW, nome: Switch, icona: "🔀", articolo: uno switch}
+  pc: {modello: PC-PT, prefisso: PC, nome: PC, icona: "🖥️", articolo: un PC}
+  server: {modello: Server-PT, prefisso: SRV, nome: Server, icona: "🗄️", articolo: un server}
+  firewall: {modello: 5506-X, prefisso: FW, nome: Firewall, icona: "🧱", articolo: un firewall}
+  cloud: {modello: Server-PT, prefisso: CLOUD, nome: Cloud, icona: "☁️", articolo: un servizio cloud}
+
+interfaccia:
+  aggiornamento_ms: 2500                  # ogni quanto la pagina rilegge la rete da Packet Tracer
+  aggiornamento_durante_lavoro_ms: 1000   # …mentre il server prepara un livello o fa una verifica
+  durata_avvisi_ms: 5000                  # quanto restano a schermo gli avvisi
+  coriandoli: true                        # festa quando si completa una missione o un livello
+  # Comandi pronti nella console IOS (un clic li esegue) e suggeriti nel prompt dei PC.
+  console_router: [show ip interface brief, show ip route, show running-config, show ip ospf neighbor]
+  console_switch: [show vlan brief, show interfaces status, show mac address-table, show running-config]
+  comandi_pc: ["ping ", ipconfig, ipconfig /all, "tracert ", arp -a]

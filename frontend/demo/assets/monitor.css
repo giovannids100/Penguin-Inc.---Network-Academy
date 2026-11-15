@@ -1,0 +1,334 @@
+/* Il «monitor» di Penguin Inc: l'interfaccia che comanda Packet Tracer, vestita come il computer dell'ufficio.
+ *
+ * Solo aspetto: viene caricato dopo style.css e ne cambia colori, caratteri, bordi e cursori. Nessuna regola
+ * qui cambia cosa fa il gioco. La grafica viene dagli asset di Penguin Inc (assets/penguin/ui): la cornice del
+ * monitor, il pulsante rosso di chiusura, i cursori in pixel art, il desktop blu con la neve.
+ *
+ * Il monitor ha sempre i suoi colori, anche se il sistema è in tema scuro: è un oggetto del gioco.
+ */
+
+/* ───────────── tavolozza ───────────── */
+body {
+  color-scheme: light;
+  --bg: #e6eef7;
+  --panel: #f3f7fc;
+  --ink: #142033;
+  --muted: #56688a;
+  --line: #b9cde0;
+  --brand: #2f6fd6;
+  --brand-soft: #dce8fb;
+  --ok: #1f9d55;
+  --ok-soft: #dcf5e5;
+  --warn: #c77d00;
+  --warn-soft: #fff3cf;
+  --bad: #d9443c;
+  --bad-soft: #fde3e1;
+  --router: #2f6fd6;
+  --switch: #149c92;
+  --pc: #4a5d7e;
+  --server: #7c5cd6;
+  --grid: #c4d9ea;
+  --canvas: #dcebf5;
+  --radius: 4px;
+  --shadow: 4px 4px 0 rgba(10, 15, 28, .32);
+  --mo-bordo: #0e1a33;          /* il contorno scuro di ogni finestra */
+  --mo-titolo: #2c4a7c;         /* la barra del titolo */
+  --mo-cornice: #eef4fa;        /* la plastica del monitor */
+  --mo-cornice-ombra: #a9cbe1;
+  --mo-desktop-1: #1f3a6b;
+  --mo-desktop-2: #4a8bc9;
+  --mo-pixel: "Press Start 2P", ui-monospace, monospace;
+  --mo-testo: "Pixelify Sans", system-ui, sans-serif;
+  --mo-mono: VT323, ui-monospace, monospace;
+}
+body:not(.storia) { background: #0e1424; }
+body { display: flow-root; }   /* il margine del monitor non deve «uscire» dal body (barra di scorrimento inutile) */
+
+/* ───────────── cursori in pixel art ───────────── */
+.app, .login, .dialog-back {
+  cursor: url(/assets/penguin/ui/cursore.png) 3 2, auto;
+}
+.app :is(button, .tool, .tab, .level, .help, summary, tr.pick, .dev, .link line.hit, select, label.switch-toggle, a),
+.dialog-back button, .login button {
+  cursor: url(/assets/penguin/ui/mano.png) 8 1, pointer;
+}
+.app :is(button, .tool, .level):active, .dialog-back button:active { cursor: url(/assets/penguin/ui/mano_click.png) 8 1, pointer; }
+.app :is(input, textarea) { cursor: text; }
+.app .help { cursor: url(/assets/penguin/ui/mano.png) 8 1, help; }
+.app button:disabled { cursor: url(/assets/penguin/ui/cursore.png) 3 2, not-allowed; }
+body:has(#job:not(.hidden)) .app, body:has(#job:not(.hidden)) .app * { cursor: url(/assets/penguin/ui/attesa.png) 12 12, progress; }
+
+/* ───────────── il monitor: cornice, barra del titolo, schermo, mento ───────────── */
+.app {
+  margin: 10px; height: calc(100vh - 20px);
+  background: var(--mo-cornice); font-family: var(--mo-testo); font-size: 15px;
+  border: 3px solid var(--mo-bordo); border-radius: 12px; overflow: hidden;
+  box-shadow: inset -6px -6px 0 var(--mo-cornice-ombra), 0 14px 50px rgba(0, 0, 0, .55);
+  padding: 10px 14px 0 10px;
+}
+.top {
+  background: var(--mo-titolo); color: #fff; border: 3px solid var(--mo-bordo); border-bottom: 0;
+  border-radius: 3px 3px 0 0; padding: 6px 8px 6px 10px; gap: 12px; min-height: 44px;
+}
+.top .brand { font-family: var(--mo-pixel); font-size: 11px; font-weight: normal; letter-spacing: .03em; gap: 10px; white-space: nowrap; }
+.top .brand .logo { display: none; }
+.top .brand::before {
+  content: ""; width: 22px; height: 24px; flex: none; image-rendering: pixelated;
+  background: url(/assets/penguin/ui/fiocco.png) 0 0 / 22px 24px no-repeat;
+}
+/* la riga puntinata della barra del titolo, come nella cornice disegnata */
+.top .brand::after {
+  content: ""; width: 120px; height: 2px; margin-left: 4px;
+  background: repeating-linear-gradient(90deg, #7fa6e0 0 2px, transparent 2px 4px);
+}
+.tabs { gap: 4px; }
+.tab { font-family: var(--mo-pixel); font-size: 9px; font-weight: normal; color: #b8cdf0; border-radius: 3px; padding: 8px 10px; }
+.tab small { display: none; }
+.tab:hover { background: rgba(255, 255, 255, .1); }
+.tab.active { background: #fff; color: var(--mo-titolo); box-shadow: 0 3px 0 var(--mo-bordo); }
+.top-right { gap: 10px; }
+.app-buoni {
+  font-family: var(--mo-pixel); font-size: 11px; background: var(--mo-bordo); color: #f5c542;
+  border-radius: 3px; padding: 7px 10px;
+}
+.pt-status { color: #b8cdf0; font-family: var(--mo-pixel); font-size: 9px; }
+.pt-status i { border-radius: 0; width: 9px; height: 9px; box-shadow: 0 0 0 2px var(--mo-bordo); }
+
+/* «Torna in ufficio» è la ✕ rossa della finestra */
+body.storia .btn-ufficio {
+  background: transparent; border: 0; color: #fff; padding: 2px 0 2px 8px; font: 13px var(--mo-testo); gap: 8px;
+}
+body.storia .btn-ufficio:hover { border: 0; color: #ffd9d6; }
+body.storia .btn-ufficio .chiudi { width: 33px; height: 30px; background-size: 99px 30px; }
+body.storia .btn-ufficio:hover .chiudi { background-position: -33px 0; }
+body.storia .btn-ufficio:active .chiudi { background-position: -66px 0; }
+body.storia .app-giorno {
+  font-size: 9px; background: rgba(255, 255, 255, .12); color: #fff; border-radius: 3px; margin-left: 0;
+}
+
+/* lo schermo: il desktop blu con le colline di neve, e sopra le finestre */
+.layout {
+  border: 3px solid var(--mo-bordo); border-top: 0; padding: 12px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 384 40' preserveAspectRatio='none' shape-rendering='crispEdges'%3E%3Cpath fill='%23e8f2fb' d='M0 14h12v-2h14v2h10v4h10v4h10v2h14v-2h10v-4h8v-4h10v-2h14v2h10v4h8v4h12v2h18v-2h10v-4h12v-2h14v2h10v4h10v4h14v-2h12v-4h10v-2h16v2h8v4h10v6h12v-2h10v-4h12v-4h10v2h8v26H0z'/%3E%3C/svg%3E") bottom / 100% 70px no-repeat,
+    linear-gradient(180deg, var(--mo-desktop-1) 0%, #2d5592 55%, var(--mo-desktop-2) 100%);
+}
+.mento {
+  height: 34px; display: flex; align-items: center; justify-content: center; position: relative; flex: none;
+  margin: 0 -14px 0 -10px; background: #e6eff6; border-top: 2px solid #c9dbe9;   /* lo stesso colore del logo disegnato */
+}
+.mento .logo-mento {
+  width: 144px; height: 26px; image-rendering: pixelated;
+  background: url(/assets/penguin/ui/logo_mento.png) 0 0 / 144px 26px no-repeat;
+}
+.mento .led {
+  position: absolute; right: 18px; top: 9px; width: 56px; height: 16px; image-rendering: pixelated;
+  background: url(/assets/penguin/ui/led.png) 0 0 / 56px 16px no-repeat;
+}
+
+/* ───────────── finestre (riquadri) ───────────── */
+.card, .stage, .job, .toast, .dialog, .login-card {
+  background: var(--panel); border: 3px solid var(--mo-bordo); border-radius: 4px; box-shadow: var(--shadow);
+}
+/* ogni riquadro ha la sua barretta del titolo, come le finestre del desktop */
+.card { border-top-width: 12px; border-top-color: var(--mo-titolo); padding: 12px 14px; }
+.card.flat { border: 2px solid var(--line); border-top-width: 2px; box-shadow: none; background: #fff; }
+.panel { gap: 14px; }
+.panel::-webkit-scrollbar, .log ul::-webkit-scrollbar, .console::-webkit-scrollbar { width: 10px; }
+.panel::-webkit-scrollbar-thumb, .log ul::-webkit-scrollbar-thumb, .console::-webkit-scrollbar-thumb {
+  background: #c9daf0; border: 2px solid var(--mo-bordo);
+}
+.panel::-webkit-scrollbar-track { background: transparent; }
+
+h2 { font-family: var(--mo-pixel); font-size: 13px; line-height: 1.5; font-weight: normal; color: var(--mo-titolo); }
+h3 { font-family: var(--mo-pixel); font-size: 10px; line-height: 1.5; font-weight: normal; color: var(--mo-titolo); }
+h4 { font-family: var(--mo-pixel); font-size: 8px; line-height: 1.6; font-weight: normal; letter-spacing: .03em; }
+.story { color: #3d4f70; font-size: 15px; white-space: pre-line; }   /* gli a capo della descrizione restano */
+code, pre, .mono, .ports td.mono, .routes li { font-family: var(--mo-mono); font-size: 17px; }
+
+/* ───────────── pulsanti e campi ───────────── */
+.btn {
+  font-family: var(--mo-testo); font-weight: 600; font-size: 15px; color: var(--ink);
+  background: #fff; border: 3px solid var(--mo-bordo); border-radius: 3px; padding: 6px 14px;
+  box-shadow: 0 3px 0 var(--mo-bordo); position: relative; top: 0;
+}
+.btn:hover { border-color: var(--mo-bordo); background: #eaf2fd; }
+.btn:active:not(:disabled) { top: 3px; box-shadow: none; }
+.btn.primary { background: var(--brand); color: #fff; border-color: var(--mo-bordo); }
+.btn.primary:hover { background: #3c7ce3; filter: none; }
+.btn.danger { color: var(--bad); }
+.btn.small { padding: 3px 10px; font-size: 14px; border-width: 2px; box-shadow: 0 2px 0 var(--mo-bordo); }
+.btn.small:active:not(:disabled) { top: 2px; }
+.btn:disabled { opacity: .55; box-shadow: none; top: 3px; }
+
+input, select, textarea {
+  font-family: var(--mo-mono); font-size: 19px; line-height: 1.1; color: var(--ink);
+  background: #fff; border: 2px solid var(--mo-bordo); border-radius: 2px; padding: 4px 8px;
+}
+input:focus, select:focus, textarea:focus { outline: 3px solid #f5c542; outline-offset: 0; border-color: var(--mo-bordo); }
+input[type=checkbox] { accent-color: var(--brand); width: 16px; height: 16px; }
+label { font-size: 13px; color: var(--muted); }
+.switch-toggle { font-size: 14px; }
+.help {
+  display: inline-grid; place-items: center; width: 17px; height: 17px; font: 9px var(--mo-pixel);
+  background: var(--brand); color: #fff; border: 2px solid var(--mo-bordo); border-radius: 2px; margin-left: 4px;
+}
+.seg { border: 2px solid var(--mo-bordo); border-radius: 3px; }
+.seg button { font-family: var(--mo-testo); font-weight: 600; color: var(--muted); }
+.seg button.on { background: var(--mo-titolo); color: #fff; }
+
+/* ───────────── il tavolo (la finestra di Packet Tracer) ───────────── */
+.stage { overflow: hidden; }
+.toolbar { background: #e3edf8; border-bottom: 3px solid var(--mo-bordo); padding: 6px 8px; gap: 6px 12px; }
+.toolbar .lbl { font-family: var(--mo-pixel); font-size: 8px; color: var(--muted); }
+.tool {
+  font-family: var(--mo-testo); font-weight: 600; font-size: 14px; color: var(--ink);
+  border: 2px solid transparent; border-radius: 3px; padding: 4px 8px;
+}
+.tool:hover { background: #fff; border-color: var(--mo-bordo); }
+.tool.active { background: var(--mo-titolo); border-color: var(--mo-bordo); color: #fff; font-weight: 600; box-shadow: 0 2px 0 var(--mo-bordo); }
+/* il pavimento dell'ufficio: piastrelle di ghiaccio */
+.canvas-wrap { background: var(--canvas); }
+#canvas .bg { fill: url(#grid); }
+#canvas { font-family: var(--mo-testo); }
+#canvas rect { shape-rendering: crispEdges; }
+.hint-bar {
+  background: var(--mo-bordo); color: #fff; border-radius: 3px; font-family: var(--mo-testo); font-size: 14px;
+  border: 2px solid #f5c542; box-shadow: 3px 3px 0 rgba(10, 15, 28, .35);
+}
+.hint-bar.show { opacity: 1; }
+.empty { font-family: var(--mo-testo); font-size: 17px; color: #4a5f86; }
+.legend { font-family: var(--mo-testo); font-size: 13px; background: #e3edf8; border-top: 3px solid var(--mo-bordo); color: #3d4f70; }
+.dot { border-radius: 0; width: 10px; height: 10px; box-shadow: 0 0 0 2px var(--mo-bordo); }
+
+.dev .halo { rx: 4px; }
+.dev.sel .halo { stroke: #f5c542; fill: rgba(245, 197, 66, .22); stroke-width: 3; }
+.dev.pick .halo { stroke: var(--brand); fill: rgba(47, 111, 214, .15); stroke-dasharray: 6 4; }
+.dev:hover .halo { stroke: var(--mo-titolo); stroke-dasharray: 4 3; }
+.dev .name { font-family: var(--mo-pixel); font-size: 9px; font-weight: normal; fill: var(--mo-bordo); }
+.dev .sub { font-family: var(--mo-mono); font-size: 16px; fill: #3d4f70; }
+.dev text, .link .pl { stroke: var(--canvas); stroke-width: 5px; }
+.link line.wire { stroke: var(--mo-titolo); stroke-width: 3; }
+.link.cross line.wire { stroke-dasharray: 8 6; }
+.link:hover line.wire { stroke: var(--brand); }
+.link .pl { font-family: var(--mo-mono); font-size: 17px; font-weight: normal; fill: var(--brand); }
+.link circle { stroke: var(--mo-bordo); stroke-width: 2; }
+
+/* ───────────── pannello di gioco ───────────── */
+.mission-strip span {
+  border-radius: 2px; width: 30px; height: 30px; font: 10px var(--mo-pixel);
+  background: #fff; color: var(--muted); border: 2px solid var(--mo-bordo);
+}
+.mission-strip span.done { background: var(--ok); color: #fff; }
+.mission-strip span.cur { background: #f5c542; color: var(--mo-bordo); border-color: var(--mo-bordo); }
+.steps li { border-radius: 3px; border: 2px solid transparent; font-size: 15px; }
+.steps li.now { background: var(--brand-soft); border-color: var(--mo-bordo); box-shadow: 3px 3px 0 rgba(10, 15, 28, .2); }
+.steps li .h { font-size: 14px; color: #3d4f70; }
+.steps li .m { font-size: 14px; }
+details.theory { border: 2px solid var(--mo-bordo); border-radius: 3px; background: #fff; }
+details.theory summary { font-weight: 600; }
+:is(details.theory, .manuale-finestra) dt { font-family: var(--mo-pixel); font-size: 9px; font-weight: normal; color: var(--mo-titolo); margin-top: 12px; }
+:is(details.theory, .manuale-finestra) dd { font-size: 15px; margin: 4px 0 0; color: #3d4f70; }
+.banner { border-radius: 3px; border: 2px solid currentColor; font-weight: 600; }
+.ticket {
+  background: #fff8d6; border: 2px solid var(--mo-bordo); border-radius: 2px; color: var(--ink);
+  font-family: var(--mo-mono); font-size: 18px; line-height: 1.15; box-shadow: 3px 3px 0 rgba(10, 15, 28, .2);
+}
+.faults li { border: 2px solid var(--mo-bordo); border-radius: 3px; background: #fff; font-size: 14px; }
+.faults li.solved { border-color: var(--ok); background: var(--ok-soft); }
+.faults li .hint, .faults li .sol { font-size: 14px; }
+.level { border: 2px solid var(--mo-bordo); border-radius: 3px; box-shadow: 0 3px 0 var(--mo-bordo); }
+.level:hover { border-color: var(--mo-bordo); background: #eaf2fd; }
+.level .n { border-radius: 2px; font: 12px var(--mo-pixel); background: var(--mo-titolo); color: #fff; }
+.level .best { font-size: 13px; }
+.storia-ticket { border-color: var(--mo-bordo); border-top-color: var(--brand); }
+.storia-fine { border-color: var(--mo-bordo); border-top-color: var(--ok); }
+/* giorno 4 (DEFCON): il Capo convoca il giocatore nel suo ufficio */
+.storia-convocazione { border-color: var(--mo-bordo); border-top: 4px solid #e04848; }
+.storia-convocazione p { margin: 0 0 8px; }
+.storia-cliente { color: #dfe9f8; font-size: 14px; padding: 0 2px 2px; }
+.storia-cliente b { color: #fff; }
+
+.log h3 { margin-bottom: 6px; }
+.log ul { font-size: 14px; }
+.log li { border-bottom: 2px dotted var(--line); }
+.log li .pts { font-family: var(--mo-pixel); font-size: 9px; align-self: center; }
+
+/* ───────────── pannello del dispositivo ───────────── */
+.insp-head .badge { border-radius: 3px; border: 2px solid var(--mo-bordo); }
+.insp-head .t b { font-family: var(--mo-pixel); font-size: 12px; font-weight: normal; margin-bottom: 4px; }
+.ports { font-size: 14px; }
+.ports th { font-family: var(--mo-pixel); font-size: 8px; font-weight: normal; }
+.ports td, .ports th { border-bottom: 2px dotted var(--line); }
+.ports tr.cur { background: #fff3c4; }
+.ports tr.pick:hover { background: #eaf2fd; }
+.routes li { border-bottom: 2px dotted var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; overflow-wrap: anywhere; }
+/* il grassetto largo 16px serviva alla lettera della rotta (S, C): nomi DNS e zone devono potersi allargare */
+.routes b { width: auto; min-width: 16px; }
+.routes li .btn { margin-left: auto; flex: none; }
+.empty-insp p { font-size: 15px; }
+/* la console: un vecchio terminale a fosfori verdi */
+.console {
+  background: #0b1430; color: #9ef0b0; border: 3px solid var(--mo-bordo); border-radius: 3px;
+  font-family: var(--mo-mono); font-size: 18px; line-height: 1.1; text-shadow: 0 0 4px rgba(158, 240, 176, .45);
+}
+
+/* ───────────── lavori lunghi, avvisi, finestre di conferma, accesso ───────────── */
+.job { border-top-width: 12px; border-top-color: var(--mo-titolo); font-family: var(--mo-testo); }
+.job ol { font-size: 14px; }
+.spinner {
+  width: 24px; height: 24px; border: 0; border-radius: 0; animation: none; image-rendering: pixelated;
+  background: url(/assets/penguin/ui/caricamento.gif) 0 0 / 24px 24px no-repeat;
+}
+.toasts { top: 74px; right: 30px; }
+.toast { border-left-width: 10px; border-left-color: var(--brand); font-family: var(--mo-testo); font-size: 15px; }
+.toast.ok { border-left-color: var(--ok); } .toast.bad { border-left-color: var(--bad); } .toast.hint { border-left-color: #f5c542; }
+.dialog-back { background: rgba(14, 26, 51, .55); font-family: var(--mo-testo); }
+.dialog { border-top-width: 12px; border-top-color: var(--mo-titolo); }
+.dialog-msg { font-size: 16px; }
+.login { font-family: var(--mo-testo); }
+.login-card { border-top-width: 14px; border-top-color: var(--mo-titolo); }
+.login .brand .logo { display: none; }
+.login .brand { font-family: var(--mo-pixel); font-size: 15px; font-weight: normal; color: var(--mo-titolo); }
+#contentError { border-radius: 3px; }
+
+/* ───────────── schermi piccoli ───────────── */
+@media (max-width: 1100px) and (min-width: 761px) {
+  /* il pannello del dispositivo va sotto: non deve schiacciare il tavolo */
+  .layout { grid-template-rows: minmax(0, 1fr) minmax(0, 38%); }
+}
+@media (max-width: 760px) {
+  .app { margin: 6px; height: auto; min-height: calc(100vh - 12px); padding: 6px 8px 0 6px; border-radius: 8px; }
+  .top .brand::after { display: none; }
+  .top .brand { font-size: 9px; }
+  body.storia .btn-ufficio span { display: none; }
+  .layout { padding: 8px; }
+  .toasts { right: 16px; }
+}
+
+/* ───────────── challenge: intestazione e Manuale, progressi, consigli, domanda, viaggio del ping ───────────── */
+.missione-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.missione-testa h2 { margin-top: 2px; }
+.btn.manuale { flex: none; white-space: nowrap; background: #fff8d6; color: var(--mo-bordo); }
+.manuale-finestra { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.manuale-finestra dl { margin: 4px 0 14px; }
+.progressi { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 4px; font-size: 14px; color: #3d4f70; }
+.progressi i { display: block; height: 12px; border: 2px solid var(--mo-bordo); border-radius: 2px; background:
+  linear-gradient(90deg, var(--ok) var(--quanto), #fff var(--quanto)); }
+.consigli { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; align-items: flex-start; }
+.consiglio { background: #fff8d6; border: 2px solid var(--mo-bordo); border-radius: 3px; padding: 6px 8px; font-size: 14px; }
+.domanda { grid-column: 2; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; align-items: stretch; }
+.domanda b { font-weight: 600; }
+.domanda .btn { text-align: left; white-space: normal; }
+.steps li .row { grid-column: 2; margin-top: 6px; }
+.dialog.traccia { width: min(620px, 100%); }
+.dialog.traccia .ports tr.dropped td { color: var(--bad); font-weight: 600; }
+.dialog.traccia .ports tr.accepted td { color: var(--ok); font-weight: 600; }
+
+/* editor delle regole del firewall: una regola per riquadro, campi su due colonne */
+.fw-regola { border: 2px solid var(--mo-bordo); border-radius: 3px; background: #fff; padding: 8px 10px; margin-bottom: 8px; }
+.fw-regola-testa { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.fw-regola-testa b { font-family: var(--mo-pixel); font-size: 9px; font-weight: normal; color: var(--mo-titolo); }
+.fw-regola-testa span { display: flex; gap: 4px; }
+.fw-regola select, .fw-regola input { width: 100%; min-width: 0; }
+.fw-regola label .muted { font-size: 12px; font-weight: normal; }

@@ -1,0 +1,406 @@
+# La storyline di Penguin Inc: l'ufficio, i personaggi, le giornate e i dialoghi.
+# Si può cambiare a gioco acceso: basta ricaricare la pagina (il client la riceve da /api/ui → testi.storia).
+#
+# Il motore resta quello di PT Academy: ogni giornata usa le missioni dell'Accademia (accademia.yaml) o i
+# livelli del Pronto Soccorso (pronto-soccorso.yaml). Qui si decide solo QUALI, e cosa si dicono i personaggi.
+#
+# DIALOGHI: una lista di battute. Ogni battuta è «personaggio.espressione: testo», per esempio
+#     - sr.caffe: Ciao {nome}, ti aspettavo!
+#   personaggi ed espressioni sono quelli di «personaggi» qui sotto. Nel testo si può usare <b>…</b>.
+#   I segnaposto tra graffe li riempie il gioco: {nome} è il nome scelto dal giocatore nella schermata
+#   iniziale (vale ovunque), {buoni} e {costo} i buoni caffè.
+#   Il giocatore sceglie il proprio nome: nelle battute rivolte a lui meglio forme neutre («che coraggio»
+#   invece di «coraggioso»).
+#
+# GIORNATE: per ognuna
+#   numero, titolo, cliente, obiettivo (riga mostrata in alto)
+#   monitor      cosa si apre al computer:
+#                  {modalita: academy, missioni: [id, …]}   missioni dell'Accademia, in ordine
+#                  {modalita: rescue, livelli: [n, …]}      livelli del Pronto Soccorso, in ordine
+#                La giornata è finita quando tutte le missioni (o tutti i livelli) sono completati.
+#   buoni        buoni caffè guadagnati a fine giornata
+#   inizio       dialogo all'arrivo in ufficio
+#   collega      cosa dice il collega se gli parli senza chiedere aiuto
+#   aiuto        l'aiuto del collega (facoltativo):
+#                  costo        buoni caffè da offrire (0 = gratis)
+#                  proposta     dialogo prima della domanda
+#                  domanda      la domanda «Offri…?» (solo se costo > 0)
+#                  accetta      dialogo dopo aver pagato
+#                  rifiuta      dialogo se dici di no
+#                  senza_buoni  dialogo se non hai abbastanza buoni
+#                  gia_dato     dialogo se l'aiuto l'hai già avuto
+#                  azione       cosa fa il collega al tavolo, oltre a parlare:
+#                                 nessuna          solo consigli
+#                                 meta_topologia   costruisce server e router della rete del giorno prima
+#                                 comandi          esegue i «comandi» qui sotto (chiamate all'API del gioco)
+#                  livello      con azione «comandi»: il livello del Pronto Soccorso a cui si applicano
+#   guida        facoltativo: i pop-up di Jody sul monitor, per challenge (id di accademia.yaml). Ognuno si vede
+#                una volta sola per partita:
+#                  inizio   lista di pop-up mostrati in fila quando la challenge comincia
+#                  passi    {numero del passo, da 1: pop-up} mostrato quando quel passo diventa quello da fare
+#                Un pop-up è {titolo (facoltativo), testo, punta (facoltativo)}; nel testo si può usare <b>…</b>
+#                e {nome}. «punta» fa lampeggiare una parte dello schermo: pannello (la challenge), tavolo,
+#                dispositivi (i pulsanti «Aggiungi»), cavo, ispettore (il pannello del dispositivo), legenda,
+#                verifica, manuale, ufficio (il pulsante per tornare in ufficio).
+#   fine         dialogo quando torni in ufficio a giornata finita
+#   capo         facoltativo: dialogo se il giocatore bussa all'ufficio del Capo. Se manca la porta è
+#                chiusa (oggetti → capo_chiuso): nei primi giorni con il Capo non si parla.
+
+titolo: Penguin Inc
+sottotitolo: Il tuo primo lavoro nel networking
+
+# La schermata iniziale: titolo e scelta del nome del protagonista
+schermata_iniziale:
+  domanda_nome: Come si chiama il tuo pinguino?
+  esempio: es. Pina
+  inizia: Inizia il primo giorno
+  continua: "Continua (giorno {giorno})"
+  continua_finale: Rivedi il finale
+  nuova: Nuova partita
+  nome_mancante: Scrivi un nome per il tuo pinguino.
+  conferma_nuova: >-
+    Iniziare una nuova partita? Si riparte dal primo giorno, il tavolo di Packet Tracer viene svuotato e
+    i buoni caffè tornano a zero.
+  nota: "Serve Cisco Packet Tracer aperto, con Extensions → MCP BUILDER."
+
+personaggi:
+  jr:
+    nome: "{nome}"       # il nome scelto nella schermata iniziale
+    ritratti: {idle: pinguino_jr_idle.png, preoccupato: pinguino_jr_preoccupato.png, esausto: pinguino_jr_esausto.png}
+  sr:
+    nome: Jody
+    ruolo: collega senior
+    ritratti: {caffe: pinguino_sr_caffe.png, tastiera: pinguino_sr_tastiera.png, spaventato: pinguino_sr_spaventato.png}
+  boss:
+    nome: Il Capo
+    ruolo: orso polare, fondatore di Penguin Inc
+    ritratti: {risata: boss_risata.png, arrabbiato: boss_arrabbiato.png, dorme: boss_dorme.png}
+  foca:
+    nome: ???
+    ruolo: sconosciuto
+    ritratti: {neutro: foca_neutro.png, parla: foca_parla.png, blink: foca_blink.png}
+
+# Testi dell'ufficio e del monitor
+interfaccia:
+  giorno: "Giorno {numero}"
+  buoni: "Buoni caffè"
+  caffe_in_mano: "Caffè in mano, da dare a Jody"
+  obiettivo: Obiettivo
+  nuova_partita: Nuova partita
+  conferma_nuova_partita: >-
+    Ricominciare dal primo giorno? Il tavolo di Packet Tracer viene svuotato e i buoni caffè tornano a zero.
+    Poi potrai scegliere di nuovo il nome.
+  vai_al_computer: "🖥️ Il tuo computer"
+  torna_in_ufficio: "Torna in ufficio"
+  avanti: "▶ clic per continuare"
+  guida_ok: "Ho capito"
+  risposta_si: "Sì"
+  risposta_no: "No"
+  oggetti:
+    computer: Il tuo computer
+    collega: Jody
+    caffe: Macchinetta del caffè
+    capo: Ufficio del Capo
+  defcon: "🚨 DEFCON 1"
+  musica_spegni: Spegni la musica
+  musica_accendi: Accendi la musica
+  convocato_monitor: "📣 <b>Il Capo ti vuole in war room</b>: c'è una novità sull'attacco. Torna in ufficio."
+  giornata_finita: "✅ Lavoro del giorno completato! Torna in ufficio a fare rapporto a Jody."
+  missioni_del_giorno: "Lavoro di oggi per <b>{cliente}</b>"
+  ticket_in_arrivo: "📨 Nuova richiesta da <b>{cliente}</b>"
+  ticket_testo: "Richiesta {numero} di {totale}: «{titolo}». Aprirla sostituisce la rete sul tavolo di Packet Tracer."
+  apri_ticket: "Apri la richiesta"
+  conferma_apri_ticket: "Aprire la richiesta «{titolo}»? La rete che c'è ora sul tavolo di Packet Tracer viene sostituita."
+  aiuto_al_lavoro: "Jody sta lavorando sul tuo tavolo…"
+  aiuto_fatto: "Jody ha finito: dai un'occhiata al tavolo."
+  aiuto_fallito: "Jody ha avuto un problema: {errore}"
+  fine_demo_titolo: Continua…
+  fine_demo_testo: >-
+    Hai completato le quattro giornate a Penguin Inc: dalla prima LAN alla risposta a un attacco. Le foche
+    torneranno, ma ora sai come accoglierle.
+
+# Cosa dicono gli oggetti dell'ufficio
+oggetti:
+  capo_chiuso:     # nei primi giorni la porta del Capo resta chiusa: con il Capo non si parla
+    - jr.preoccupato: "La porta del Capo è chiusa. C'è un cartello: «NON DISTURBARE»."
+    - jr.idle: Meglio non bussare. Il Capo lo conoscerò quando ci sarà bisogno di lui.
+  computer_finito:
+    - jr.esausto: Per oggi basta schermi. Prima vado a fare rapporto a Jody.
+
+# I consigli del collega senior: i testi sono nelle missioni (accademia.yaml, «consigli»), qui le battute intorno.
+# Si chiedono parlando con Jody in ufficio o con il pulsante «Consiglio di Jody» sul monitor; sono gratis.
+# La macchinetta del caffè: con un buono si prende un caffè, da portare a Jody in cambio di un consiglio.
+# Segnaposto: {buoni} (buoni rimasti), {caffe} (caffè in mano).
+macchinetta:
+  saluto:
+    - jr.idle: "La macchinetta del caffè. Buoni: <b>{buoni}</b> · caffè in mano: <b>{caffe}</b>."
+  domanda: "Prendo un caffè per Jody? Costa 1 buono."
+  preso:
+    - jr.idle: "Ecco un caffè fumante. ☕ Lo porto a Jody: in cambio mi darà un consiglio."
+  senza_buoni:
+    - jr.preoccupato: Niente buoni. I buoni caffè si guadagnano finendo le giornate di lavoro.
+
+# I consigli del collega senior per la challenge in corso (i testi sono in accademia.yaml, «consigli»).
+# Si chiedono parlando con Jody in ufficio: gratis nei giorni con «consigli_gratis: true», altrimenti in cambio di
+# un caffè preso alla macchinetta. Segnaposto: {numero}, {totale}, {testo}, {buoni}, {caffe}.
+consigli:
+  battuta: {sr.tastiera: "<b>Consiglio {numero} di {totale}.</b> {testo}"}   # {testo} = il consiglio della challenge
+  serve_caffe:
+    - sr.caffe: "Un consiglio? Volentieri… ma senza caffè non carburo. Prendimene uno alla <b>macchinetta</b>: costa un buono."
+  serve_caffe_senza_buoni:
+    - sr.caffe: "Un consiglio costa un caffè, e tu non hai buoni per prenderlo. Prova da solo: i buoni si guadagnano finendo le giornate."
+  offri: "Do il caffè a Jody per un consiglio?"
+  rifiuta:
+    - sr.tastiera: Come vuoi. Il caffè tienilo pure, quando ti serve sono qui.
+  grazie:
+    - sr.caffe: Ahh, questo sì che è un caffè. Allora, senti qua…
+  finiti:
+    - sr.caffe: "Ti ho già detto tutto quello che so per questa challenge. Il resto è tuo: ce la fai!"
+
+giorni:
+
+  # Le challenge (missioni dell'Accademia) sono in accademia.yaml; le topologie di partenza, come file .pkt,
+  # in reti/. Ogni giorno ha tre challenge; dal giorno 2 ognuno parte dalla sua rete (giornoN.pkt).
+  - numero: 1
+    titolo: Costruire e collegare le prime reti
+    cliente: Penguin Inc
+    obiettivo: "Tre challenge: la prima LAN, l'uscita verso l'esterno, due reparti separati"
+    monitor: {modalita: academy, missioni: [g1-lan, g1-esterno, g1-reparti]}
+    buoni: 1
+    consigli_gratis: true      # il primo giorno i consigli di Jody non costano caffè
+    inizio:
+      - sr.caffe: "Eccoti! Tu devi essere <b>{nome}</b>, la nuova recluta. Io sono <b>Jody</b>, senior di Penguin Inc. Caffè?"
+      - jr.preoccupato: "Ehm… piacere. Che cosa fa, esattamente, Penguin Inc?"
+      - sr.caffe: Reti e sicurezza. Le aziende dell'Antartide ci chiamano e noi le colleghiamo, le aggiustiamo, le proteggiamo.
+      - sr.tastiera: "Si lavora dal computer, con <b>Packet Tracer</b>: quello che costruisci lì è una rete vera, non un disegno."
+      - sr.tastiera: "Oggi tre challenge. Prima: abbiamo comprato due PC e uno switch, ma una rete ancora non c'è. <b>Costruisci la prima LAN</b>."
+      - sr.tastiera: "Poi la colleghiamo all'<b>esterno</b> con un router, e alla fine separiamo <b>due reparti</b>."
+      - sr.caffe: "Clicca sul pavimento per muoverti, sulle cose per usarle. La tua scrivania è quella in alto con il monitor spento."
+      - sr.caffe: "La prima challenge è il tutorial: ti guida passo passo. Nelle altre te la cavi da solo, ma se ti blocchi vieni qui e chiedimi un <b>consiglio</b>."
+      - sr.caffe: "Oggi i miei consigli sono gratis. Da domani si pagano in caffè: prendilo alla <b>macchinetta</b> con un buono e portamelo. ☕"
+    collega:
+      - sr.tastiera: "Un passo alla volta: sul monitor c'è la descrizione della challenge, con i dispositivi e come collegarli, e il <b>Manuale</b> se ti serve un po' di teoria."
+    guida:
+      g1-lan:
+        inizio:
+          - titolo: Benvenuto al tuo computer!
+            testo: "A sinistra c'è la challenge: leggi la <b>descrizione</b>, lì trovi i dispositivi e come collegarli. Sotto, i passi: quello con 👉 è il prossimo da fare."
+            punta: pannello
+          - titolo: Il tavolo
+            testo: "Al centro c'è il tavolo: è la rete vera di <b>Packet Tracer</b>. Tutto quello che fai qui succede davvero in PT."
+            punta: tavolo
+          - titolo: Il Manuale
+            testo: "Non sai cos'è uno switch o un indirizzo IP? Apri il <b>Manuale</b>: c'è la teoria in pillole per questa challenge."
+            punta: manuale
+        passi:
+          1:
+            titolo: Primo passo
+            testo: "Usa i pulsanti <b>Aggiungi</b> in alto: scegli «PC» e clicca sul tavolo per metterlo giù. Ti servono due PC e uno switch."
+            punta: dispositivi
+          2:
+            titolo: I cavi
+            testo: "Prendi lo strumento <b>Cavo</b>, poi clicca un PC e subito dopo lo switch. Fallo per tutti e due i PC. Il pallino sul cavo diventa <b>verde</b> in una trentina di secondi."
+            punta: cavo
+          3:
+            titolo: Gli indirizzi
+            testo: "Clicca un PC: nella sua scheda scegli <b>Statico</b> e dagli un indirizzo IP. I due PC devono stare nella <b>stessa rete</b>, ognuno con il suo indirizzo. Se non sai da dove partire, apri il Manuale."
+            punta: ispettore
+          4:
+            titolo: La prova del nove
+            testo: "La rete è pronta! Premi <b>Verifica</b>: il gioco fa partire dei ping veri in Packet Tracer, da PC1 a PC2 e ritorno."
+            punta: verifica
+          5:
+            titolo: Il viaggio del ping
+            testo: "Funziona! Ora guarda come ci è arrivato il ping: premi <b>Guarda il viaggio del ping</b> nel pannello."
+            punta: pannello
+      g1-esterno:
+        inizio:
+          - titolo: Ora tocca a te!
+            testo: "Chiedi aiuto a Jody se ne hai bisogno: torna in <b>ufficio</b> e parla con Jody. Nella descrizione trovi tutto quello che serve."
+            punta: ufficio
+    fine:
+      - sr.caffe: "Una LAN, un router verso l'esterno, due reparti separati: in un giorno solo! Ottimo lavoro, {nome}."
+      - sr.caffe: "Ecco il tuo primo <b>buono caffè</b>. ☕ Tienilo da conto: domani potrebbe servirti."
+      - jr.esausto: Che giornata…
+
+  - numero: 2
+    titolo: Una sala server
+    cliente: Penguin Inc
+    obiettivo: "Tre challenge: la sala server con il DHCP, i nomi al posto degli indirizzi, il firewall"
+    monitor: {modalita: academy, missioni: [g2-sala, g2-nomi, g2-firewall]}
+    buoni: 2
+    inizio:
+      - sr.caffe: "Buongiorno, {nome}! Ieri hai fatto un ottimo lavoro con i reparti: sul tuo tavolo trovi la rete dei due reparti, già pronta."
+      - sr.tastiera: "Oggi si cresce: l'azienda apre una <b>sala server</b> in un'altra stanza, dietro un secondo router."
+      - sr.tastiera: "Poi diamo dei <b>nomi</b> ai server, così nessuno deve ricordare gli indirizzi. E alla fine li proteggiamo con un <b>firewall</b>."
+      - sr.caffe: "Da oggi i miei consigli costano un caffè: prendilo alla <b>macchinetta</b> con un buono e portamelo. ☕"
+    collega:
+      - sr.tastiera: "Leggi bene l'obiettivo sul monitor: cosa ottenere è scritto lì, come arrivarci lo decidi tu."
+    guida:
+      g2-sala:
+        inizio:
+          - titolo: Nuovi attrezzi
+            testo: "Le <b>rotte</b> e il <b>DHCP</b> si configurano nella scheda del router: clicca un router sul tavolo e scorri il pannello a destra."
+            punta: ispettore
+      g2-nomi:
+        inizio:
+          - titolo: Il DNS
+            testo: "Il servizio DNS si accende nella scheda del server, dove scrivi anche i nomi. Il campo DNS dei PC è accanto a IP e gateway."
+            punta: ispettore
+      g2-firewall:
+        inizio:
+          - titolo: Il firewall
+            testo: "Il firewall si aggiunge da <b>Aggiungi</b>. Nella sua scheda ci sono le zone, le regole e le rotte."
+            punta: dispositivi
+    fine:
+      - sr.caffe: "Sala server, nomi e firewall in un giorno solo: stai diventando un vero sistemista, {nome}!"
+      - sr.caffe: "Ecco altri <b>buoni caffè</b>. ☕ Te li sei meritati."
+      - jr.esausto: Ho bisogno di quel caffè…
+
+  - numero: 3
+    titolo: Proteggere la rete di un cliente
+    cliente: Krill & Co.
+    obiettivo: "Tre challenge: la DMZ per il sito, la VPN per chi lavora da casa, i servizi nel cloud"
+    monitor: {modalita: academy, missioni: [g3-dmz, g3-vpn, g3-cloud]}
+    buoni: 2
+    inizio:
+      - sr.caffe: "Buongiorno, {nome}! Oggi niente reti nuove: lavoriamo per un cliente vero, <b>Krill & Co.</b>"
+      - sr.tastiera: "La loro rete funziona, ma è tutta aperta: da Internet si arriva dappertutto. Il sito e i PC dei dipendenti stanno praticamente nella stessa stanza."
+      - jr.preoccupato: Quindi chiunque su Internet potrebbe entrare nei loro computer?
+      - sr.tastiera: "Esatto. Prima mettiamo i <b>firewall</b> e una <b>DMZ</b> per il sito. Poi una <b>VPN</b> per chi lavora da casa, e alla fine colleghiamo i loro servizi nel <b>cloud</b>."
+      - sr.caffe: "La rete del cliente è già sul tuo tavolo. Se ti blocchi, sai dove trovarmi: un caffè e un consiglio. ☕"
+    collega:
+      - sr.tastiera: "Pensa a strati: Internet fuori, la DMZ in mezzo, la rete interna dentro. Ogni confine ha il suo firewall."
+    guida:
+      g3-dmz:
+        inizio:
+          - titolo: La rete del cliente
+            testo: "Sul tavolo c'è la rete di Krill & Co., già funzionante: <b>INTERNET</b> in alto, il server <b>WEB</b> del sito, la rete interna sotto R2. Leggi bene i nomi nella descrizione."
+            punta: tavolo
+          - titolo: Due firewall
+            testo: "Per mettere un firewall in mezzo a un cavo, prima stacca il cavo: prendi lo strumento <b>Togli</b> e clicca il cavo. Zone, regole e rotte sono nella scheda del firewall."
+            punta: ispettore
+      g3-vpn:
+        inizio:
+          - titolo: Le porte di R2
+            testo: "R2 ha ancora due porte libere: una per la VPN e una per il cloud. Il dipendente a casa è un normale <b>PC</b> dietro il nuovo firewall."
+            punta: dispositivi
+      g3-cloud:
+        inizio:
+          - titolo: Il cloud
+            testo: "Il servizio cloud si aggiunge da <b>Aggiungi</b>, come un server. Si usa sulla porta 80, come un sito."
+            punta: dispositivi
+    fine:
+      - sr.caffe: "DMZ, VPN e cloud: la rete di Krill & Co. adesso ha delle porte, e tu hai le chiavi. Bravo, {nome}!"
+      - sr.caffe: "Ecco i tuoi <b>buoni caffè</b>. ☕ Goditi la serata… ho un brutto presentimento per domani."
+      - jr.esausto: Un brutto presentimento?
+
+  - numero: 4
+    titolo: Attacco in corso
+    cliente: Penguin Inc
+    obiettivo: "Tre challenge: i tentativi di accesso a raffica, l'ondata di richieste, la porta sul retro"
+    monitor: {modalita: academy, missioni: [g4-forza-bruta, g4-ddos, g4-reverse-shell]}
+    buoni: 3
+    allarme: true             # DEFCON: la giornata si apre con la war room e l'ufficio resta in allarme
+    war_room: true            # con il Capo si parla nella war room (lui a capotavola); si gioca in ufficio
+    inizio:
+      - sr.spaventato: "{nome}! Meno male che sei arrivato. Senti l'<b>allarme</b>?"
+      - boss.arrabbiato: "TUTTI IN WAR ROOM! SUBITO!"
+    war_room_inizio:
+      - boss.arrabbiato: "La nostra rete è sotto attacco. Tentativi di accesso a raffica, il sito che non risponde, computer che parlano con chissà chi!"
+      - foca.parla: "Ehehe… salve, pinguini. Avete costruito delle belle reti."
+      - foca.blink: Sarebbe un peccato se qualcuno… ci entrasse.
+      - jr.preoccupato: "Una… foca?!"
+      - boss.arrabbiato: "{nome}, oggi si fa <b>detection e response</b>: trova chi ci attacca e fermalo. Senza spegnere l'azienda!"
+    dopo_allarme:
+      - sr.tastiera: "Niente panico. La rete dell'azienda è sul tuo tavolo, con tutto il suo traffico. Il tuo attrezzo di oggi è lo <b>sniffer</b>: ascolta e guarda chi parla con chi."
+      - sr.caffe: "Tre attacchi, uno alla volta. Il Capo ti chiamerà in war room a ogni novità. E se ti serve un consiglio, il caffè lo prendo doppio. ☕"
+    # a ogni challenge il Capo convoca il giocatore in war room e spiega cosa succede
+    convocazione:
+      - sr.spaventato: "{nome}! Il Capo ti vuole in <b>war room</b>. ADESSO!"
+    briefing:
+      g4-forza-bruta:
+        - boss.arrabbiato: "{nome}, ascoltami bene: siamo a <b>DEFCON 1</b>!"
+        - boss.arrabbiato: "Il server dei file sta impazzendo: qualcuno prova una password dopo l'altra, a raffica! E non arriva da fuori… è uno dei NOSTRI computer!"
+        - jr.preoccupato: Uno dei nostri? Allora la Foca è già dentro…
+        - boss.arrabbiato: "Trova quella macchina e staccala dalla rete. SUBITO! Ma guai a te se tocchi gli altri: l'azienda deve continuare a lavorare!"
+      g4-ddos:
+        - boss.arrabbiato: "La macchina è isolata, bene, ma non c'è tempo per festeggiare! Il sito interno non risponde più!"
+        - boss.arrabbiato: "Un'ondata di richieste, tutte insieme, da tante macchine! È un <b>DDoS</b>! I telefoni squillano, i clienti urlano, io sudo… e sono un orso polare!"
+        - jr.preoccupato: Allora blocco tutto quello che arriva?
+        - boss.arrabbiato: "NO! In mezzo ci sono anche i nostri colleghi della filiale! Se li tagli fuori il sito lo spegni tu, al posto della Foca. Contienila, quell'ondata!"
+      g4-reverse-shell:
+        - boss.arrabbiato: "Il sito respira… ma l'antivirus ha appena suonato su <b>PC2</b>!"
+        - boss.arrabbiato: "Qualcuno lo comanda da fuori! È PC2 che chiama la Foca di nascosto, da dentro: una porta sul retro!"
+        - foca.parla: "Ehehe… ve ne siete accorti tardi, pinguini."
+        - boss.arrabbiato: "Taglia quella connessione, ma PC2 deve continuare a lavorare. E portami l'indirizzo della Foca: lo voglio nel mio rapporto!"
+    collega:
+      - sr.tastiera: "Prima osserva, poi agisci. E la risposta giusta è quella che ferma l'attacco senza fermare chi lavora."
+    guida:
+      g4-forza-bruta:
+        inizio:
+          - titolo: Lo sniffer
+            testo: "Clicca un dispositivo e apri la sezione <b>Sniffer</b> nella sua scheda: cattura i pacchetti che passano da lì, con chi li manda, a chi e su quale porta."
+            punta: ispettore
+          - titolo: Le domande
+            testo: "Alcuni passi sono <b>domande</b>: rispondi nel pannello dopo aver guardato la cattura. Se sbagli, puoi riprovare."
+            punta: pannello
+      g4-ddos:
+        inizio:
+          - titolo: I limiti di velocità
+            testo: "I <b>limiti di velocità</b> si mettono nella scheda di un router, porta per porta. Scegli bene il router e la porta: sulla strada dell'ondata, in uscita."
+            punta: ispettore
+      g4-reverse-shell:
+        inizio:
+          - titolo: Le ACL
+            testo: "Le <b>ACL</b> sono nella scheda dei router, nella sezione <b>Sicurezza</b>: una lista di regole permetti/nega, da applicare a una porta, in entrata o in uscita."
+            punta: ispettore
+    fine:
+      - foca.neutro: Hmpf. Per questa volta…
+      - sr.caffe: "Tre attacchi fermati e l'azienda non si è mai fermata. Ecco i tuoi <b>buoni caffè</b>. ☕"
+      - sr.tastiera: "Ah, {nome}… il Capo ti aspetta nel suo ufficio. Stavolta niente allarmi: credo sia una buona notizia."
+      - jr.preoccupato: Una buona notizia? Dal Capo?
+
+# Musica (file in assets/): «gameplay» per quasi tutto il gioco, «attacco» da quando attaccano le foche
+# (l'inizio della giornata con «allarme») fino al finale. Parte al primo clic; 🔊/🔇 in basso a destra.
+musica:
+  gameplay: audio/stumble_around.mp3
+  attacco: audio/face_the_facts.mp3
+  volume: 0.4
+
+# Dopo l'ultima giornata: la promozione, nell'ufficio del Capo
+finale:
+  - boss.risata: "{nome}! Vieni, vieni avanti. Niente allarmi, stavolta."
+  - boss.risata: "Quattro giorni fa non sapevi cos'è uno switch. Poi hai costruito reti, le hai protette, e oggi hai respinto la Foca senza fermare l'azienda nemmeno un minuto."
+  - jr.preoccupato: "Ehm… grazie, Capo. Ho fatto solo il mio lavoro."
+  - boss.risata: "E lo hai fatto benissimo. Per questo, da oggi… sei <b>promosso</b>!"
+promozione:
+  titolo: PROMOZIONE!
+  ruolo: Analista della sicurezza · Penguin Inc
+  testo: "Da recluta a difensore della rete in quattro giorni. Congratulazioni, {nome}!"
+  ok: Grazie, Capo!
+  dopo:
+    - sr.caffe: "Analista della sicurezza! Te lo sei meritato, {nome}. Il primo caffè da promosso lo offro io. ☕"
+    - jr.idle: Ora sì che ci vuole quel caffè.
+    - foca.parla: "Ci rivedremo, pinguini. Le foche hanno buona memoria…"
+
+# Titoli di coda: dopo la promozione (e ogni volta che si rivede il finale) e dal pulsante «Crediti» della
+# schermata iniziale. Ogni sezione ha un titolo e delle righe; una riga è un testo oppure {testo, link}.
+# I crediti della musica sono OBBLIGATORI (licenza CC BY 4.0: titolo, autore, fonte, licenza): non toglierli.
+crediti:
+  titolo: Titoli di coda
+  pulsante: Crediti
+  ok: Chiudi
+  sezioni:
+    - titolo: Gioco sviluppato dal team Los Penguinos
+      righe:
+        - {testo: Pasquale Criscuolo, link: "https://github.com/Paki64"}
+        - {testo: Giovanni Di Stazio, link: "https://github.com/giovannids100"}
+        - {testo: Francesca Morra, link: "https://github.com/fra494"}
+    - titolo: Musica
+      righe:
+        - "«Stumble Around» e «Face the Facts» di Zane Little"
+        - testo: "dall'album «A Bag of Chips [Vol. 1]» (2022)"
+          link: https://zanelittle.bandcamp.com/album/a-bag-of-chips-vol-1
+        - testo: Licenza Creative Commons Attribuzione 4.0 (CC BY 4.0)
+          link: https://creativecommons.org/licenses/by/4.0/deed.it

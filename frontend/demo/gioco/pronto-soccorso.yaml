@@ -1,0 +1,622 @@
+# Pronto Soccorso: i livelli in cui il giocatore ripara una rete rotta (o protegge una rete insicura).
+#
+# Per ogni livello:
+#   numero, titolo
+#   rete      la rete di partenza: argomenti dello strumento pt_full_build di packet-tracer-mcp
+#   costruisci  facoltativo: azioni che costruiscono la rete (al posto di «rete») o la completano:
+#             aggiungi, collega, ip_host, ip_porta, comandi, zona_firewall {dispositivo, verso, zona, livello, ip,
+#             maschera}, regole_firewall {dispositivo, regole: [{da, verso, azione, protocollo, porta,
+#             destinazione}]} (vedi campagna.yaml per il formato delle azioni)
+#             (routers, pcs_per_lan, servers, template, routing, vlans…). Nomi e indirizzi della rete che
+#             ne esce si vedono con pt_full_build(..., deploy=False), senza toccare Packet Tracer.
+#   ticket    i sintomi raccontati dagli utenti: è tutto quello che il giocatore sa all'inizio
+#   guasti    vedi sotto
+#   verifiche_finali   controllo di tutta la rete quando i guasti sono riparati
+#   lezione   la morale, mostrata a livello completato
+#   traffico  facoltativo: il «rumore di fondo» che lo sniffer vede, [{da, comando}] con comando
+#             «ping IP», «telnet IP porta» o «web http://IP» (IP anche come «@PC3»)
+#
+# Per ogni guasto:
+#   id               nome breve e unico nel livello
+#   cosa_era_rotto   mostrato quando il guasto è riparato (o il giocatore si arrende)
+#   sintomo          mostrato finché il guasto è aperto, come lo direbbe un utente
+#   rompi            come si rompe la rete (vuoto = la falla c'è già nella rete di partenza):
+#                      comandi:      {dispositivo, righe: [righe IOS]}
+#                      spegni_porta: {dispositivo, porta}
+#                      ip_host:      {dispositivo, ip, maschera, gateway}   ("@PC2" = l'IP attuale di PC2)
+#   verifiche        tutte devono passare a guasto riparato; almeno una deve fallire subito dopo la rottura.
+#                    Per le falle di sicurezza scrivi PRIMA le verifiche di sicurezza, POI quelle del
+#                    traffico che deve continuare a passare.
+#                      ping:         {da, a}            a = IP o "@DISPOSITIVO"
+#                      web:          {da, url}          la pagina deve aprirsi
+#                      web_bloccato: {da, url}          la pagina NON deve aprirsi
+#                      bloccato:     {da, a, fermato_da}  a = dispositivo; fermato_da facoltativo
+#                      audit_pulito: {dispositivo, gravita, falle}   gravita: alta, media o bassa;
+#                                    falle (facoltativo): solo questi codici dell'audit, per esempio
+#                                    [NO_ENABLE_SECRET, USER_CREDENTIAL_REVERSIBLE, NO_SERVICE_PASSWORD_ENCRYPTION]
+#                      resiste:      {spento, verifiche: [...]}   con «spento» spento devono passare
+#                      porta:        {da, a, porta, aperta}  aperta true = deve rispondere; false = chiusa o filtrata
+#   vincolo          facoltativo, contro le scorciatoie che violano il ticket:
+#                      ip_esatto:  {dispositivo, ip}
+#                      nella_rete: {dispositivo, rete, messaggio}
+#   indizi           tre, dal più vago al più preciso
+#   soluzione        mostrata quando il guasto è riparato o il giocatore si arrende
+#
+# Il server rilegge questo file da solo quando lo salvi. Un livello nuovo o cambiato si collauda avviandolo
+# con il server lanciato con PTA_COLLAUDO=1: così rifiuta il livello se la rete di partenza non funziona o se
+# un guasto non si vede. In gioco (senza PTA_COLLAUDO) questi controlli si saltano per non perdere tempo.
+
+livelli:
+
+  - numero: 1
+    titolo: Primo giorno
+    rete: {routers: 1, pcs_per_lan: 2, servers: 1, template: "single_lan", routing: "static"}
+    ticket: |-
+      Da: Giulia (PC2)
+      «Da stamattina non mi funziona niente, nemmeno la rete interna.»
+
+      Da: Marco (PC1)
+      «Il server dei documenti (192.168.0.4) non risponde, né a me né agli altri. Ieri andava.»
+    guasti:
+      - id: srv-subnet
+        cosa_era_rotto: "SRV1 aveva l'IP 192.168.1.4: una rete diversa da quella dell'ufficio (192.168.0.0/24)."
+        sintomo: Il server 192.168.0.4 non risponde.
+        rompi:
+          - ip_host: {dispositivo: "SRV1", ip: "192.168.1.4", maschera: "255.255.255.0", gateway: "192.168.0.1"}
+        verifiche:
+          - ping: {da: "PC1", a: "192.168.0.4"}
+        vincolo:
+          ip_esatto: {dispositivo: "SRV1", ip: "192.168.0.4"}
+        indizi:
+          - "Il server è acceso e il cavo è a posto: il problema è nella sua configurazione."
+          - "Confronta l'IP del server con quello dei PC: sono nella stessa rete?"
+          - "Il terzo numero dell'IP del server non è quello della LAN (0)."
+        soluzione: SRV1 → IP 192.168.0.4, maschera 255.255.255.0, gateway 192.168.0.1.
+      - id: sw-port-shut
+        cosa_era_rotto: La porta FastEthernet0/2 di SW1 (quella di PC2) era spenta con «shutdown».
+        sintomo: PC2 non raggiunge nessuno, nemmeno il gateway.
+        rompi:
+          - spegni_porta: {dispositivo: "SW1", porta: "FastEthernet0/2"}
+        verifiche:
+          - ping: {da: "PC2", a: "192.168.0.1"}
+        indizi:
+          - "PC2 è configurato bene: il problema è tra PC2 e il resto della rete."
+          - Guarda il colore del collegamento di PC2 sul tavolo.
+          - "Seleziona SW1 → Porte: una porta è spenta."
+        soluzione: >-
+          SW1 → porta FastEthernet0/2 → accendi (no shutdown). Va bene anche spostare il cavo su
+          una porta accesa.
+    verifiche_finali:
+      - ping: {da: "PC2", a: "192.168.0.4"}
+    lezione: >-
+      Prima di tutto si controlla il livello fisico (cavi e porte accese), poi l'indirizzamento.
+
+  - numero: 2
+    titolo: Due sedi
+    rete: {routers: 2, pcs_per_lan: 1, template: "multi_lan", routing: "ospf"}
+    ticket: |-
+      Da: sede centrale (PC1)
+      «Non riusciamo più a raggiungere la filiale. Dal router R1 la rete 192.168.1.0 della filiale sembra sparita.»
+
+      Da: filiale (PC2)
+      «Io dalla filiale non raggiungo niente fuori dal mio ufficio, nemmeno il router della sede centrale.»
+    guasti:
+      - id: ospf-network
+        cosa_era_rotto: >-
+          R2 non annunciava più la sua LAN: mancava «network 192.168.1.0 0.0.0.255 area 0» in
+          «router ospf 1».
+        sintomo: La rete 192.168.1.0/24 della filiale non è raggiungibile dalla sede centrale.
+        rompi:
+          - comandi:
+              dispositivo: R2
+              righe:
+                - "enable"
+                - "configure terminal"
+                - "router ospf 1"
+                - "no network 192.168.1.0 0.0.0.255 area 0"
+                - "end"
+        verifiche:
+          - ping: {da: "R1", a: "192.168.1.1"}
+        indizi:
+          - >-
+            I collegamenti sono tutti verdi: il problema è nelle informazioni che i router si
+            scambiano.
+          - "Guarda la tabella di routing di R1: che reti conosce? Ne manca una."
+          - "Su R2 apri la console: «show running-config» e guarda la sezione «router ospf 1»."
+        soluzione: "R2: configure terminal → router ospf 1 → network 192.168.1.0 0.0.0.255 area 0."
+      - id: pc2-gateway
+        cosa_era_rotto: PC2 aveva il gateway sbagliato (192.168.1.254 invece di 192.168.1.1).
+        sintomo: PC2 non raggiunge niente fuori dal suo ufficio.
+        rompi:
+          - ip_host: {dispositivo: "PC2", ip: "@PC2", maschera: "255.255.255.0", gateway: "192.168.1.254"}
+        verifiche:
+          - ping: {da: "PC2", a: "10.0.0.2"}
+        vincolo:
+          nella_rete:
+            dispositivo: PC2
+            rete: 192.168.1.0/24
+            messaggio: PC2 deve restare nella rete della filiale (192.168.1.0/24).
+        indizi:
+          - PC2 raggiunge il suo router? E un indirizzo fuori dalla sua rete?
+          - Quando un PC deve uscire dalla sua rete, a chi manda il pacchetto?
+          - "Confronta il gateway di PC2 con l'IP della porta di R2 verso la filiale."
+        soluzione: PC2 → gateway 192.168.1.1 (oppure rimettilo in DHCP).
+    verifiche_finali:
+      - ping: {da: "PC1", a: "@PC2"}
+    lezione: Se un collegamento è verde ma i dati non passano, guarda le tabelle di routing.
+
+  - numero: 3
+    titolo: Reparti separati
+    rete: {routers: 1, pcs_per_lan: 4, template: "router_on_a_stick", vlans: 2}
+    ticket: |-
+      Da: Amministrazione della Banca dei Ghiacci (VLAN 10)
+      «Abbiamo spostato la scrivania di PC3 e da allora non va più in rete. PC1, sulla stessa VLAN, funziona.»
+
+      Da: Sportelli (VLAN 20)
+      «Nessuno di noi raggiunge il gateway 192.168.1.1.»
+    guasti:
+      - id: access-vlan
+        cosa_era_rotto: La porta di PC3 (SW1 FastEthernet0/3) era nella VLAN 20 invece che nella 10.
+        sintomo: PC3 non raggiunge il suo gateway 192.168.0.1.
+        rompi:
+          - comandi:
+              dispositivo: SW1
+              righe:
+                - "enable"
+                - "configure terminal"
+                - "interface FastEthernet0/3"
+                - "switchport access vlan 20"
+                - "end"
+        verifiche:
+          - ping: {da: "PC3", a: "192.168.0.1"}
+        vincolo:
+          nella_rete:
+            dispositivo: PC3
+            rete: 192.168.0.0/24
+            messaggio: "PC3 è dell'Amministrazione: deve restare nella rete 192.168.0.0/24."
+        indizi:
+          - "Il cavo di PC3 è verde e il suo IP è giusto per l'Amministrazione."
+          - "Una VLAN è una «stanza» separata dentro lo stesso switch: in che stanza è PC3?"
+          - "Seleziona SW1 → Porte: confronta la VLAN della porta di PC3 con quella di PC1."
+        soluzione: SW1 → porta FastEthernet0/3 → VLAN 10.
+      - id: subif-encap
+        cosa_era_rotto: La sottointerfaccia GigabitEthernet0/0.20 di R1 usava il tag VLAN 30 invece di 20.
+        sintomo: La VLAN 20 non raggiunge il gateway 192.168.1.1.
+        rompi:
+          - comandi:
+              dispositivo: R1
+              righe:
+                - "enable"
+                - "configure terminal"
+                - "interface GigabitEthernet0/0.20"
+                - "encapsulation dot1Q 30"
+                - "end"
+        verifiche:
+          - ping: {da: "PC2", a: "192.168.1.1"}
+        indizi:
+          - "Lo switch è a posto per la VLAN 20: il problema è dall'altra parte del trunk."
+          - Il router ha una sottointerfaccia per ogni VLAN, ognuna con il suo tag.
+          - "Console di R1: «show running-config», guarda «encapsulation dot1Q» della .20."
+        soluzione: >-
+          R1: interface GigabitEthernet0/0.20 → encapsulation dot1Q 20 (l'IP 192.168.1.1 va
+          rimesso se sparisce).
+    verifiche_finali:
+      - ping: {da: "PC1", a: "@PC4"}
+    lezione: >-
+      Con le VLAN contano tre cose: la VLAN della porta, il trunk e il tag sulla
+      sottointerfaccia del router.
+
+  - numero: 4
+    titolo: Il gestionale dei conti
+    rete: {routers: 2, pcs_per_lan: 1, servers: 1, template: "multi_lan", routing: "ospf"}
+    ticket: |-
+      Da: responsabile sicurezza della Banca dei Ghiacci
+      «Un cliente dalla sala d'attesa (PC2) è riuscito ad aprire il gestionale dei conti (http://192.168.0.3) e a sbirciare i saldi. Dalla sala il gestionale non deve essere raggiungibile; gli uffici (PC1) invece devono continuare a usarlo, e dalla sala si deve poter ancora contattare gli uffici.»
+
+      Da: il tecnico che c'era prima
+      «Ah, il router degli uffici (R1) non ha mai avuto una password…»
+    guasti:
+      - id: registro-aperto
+        cosa_era_rotto: >-
+          Nessun filtro tra la sala d'attesa (192.168.1.0/24) e il gestionale dei conti: chiunque
+          in sala poteva aprirlo.
+        sintomo: "Dalla sala d'attesa (PC2) il gestionale dei conti si apre ancora."
+        rompi: []          # niente da rompere: la falla c'è già nella rete di partenza
+        verifiche:
+          - web_bloccato: {da: "PC2", url: "http://192.168.0.3"}
+          - web: {da: "PC1", url: "http://192.168.0.3"}
+          - ping: {da: "PC2", a: "@PC1"}
+        indizi:
+          - "Il traffico va filtrato su un router che sta tra la sala d'attesa e il gestionale."
+          - >-
+            Serve un'ACL estesa: blocca il web (tcp, porta 80) dalla rete della sala verso il
+            server e permetti tutto il resto. Attenzione: alla fine di ogni ACL c'è un «deny»
+            implicito.
+          - "R1 → 🛡️ Sicurezza → Nuova ACL estesa, applicata sulla porta verso gli uffici (GigabitEthernet0/1), in uscita."
+        soluzione: >-
+          Su R1 un'ACL estesa: deny tcp 192.168.1.0/24 → 192.168.0.3 porta 80, poi permit ip any
+          any; applicata su GigabitEthernet0/1 in uscita. Va bene anche su R2, in ingresso dalla
+          porta della sala d'attesa.
+      - id: router-senza-password
+        cosa_era_rotto: >-
+          R1 non aveva una password di enable: chiunque arrivasse alla console ne diventava
+          amministratore.
+        sintomo: "L'audit di sicurezza di R1 trova ancora una falla grave."
+        rompi: []          # niente da rompere: la falla c'è già nella rete di partenza
+        verifiche:
+          - audit_pulito: {dispositivo: "R1", gravita: "alta"}
+        indizi:
+          - "Il ticket parla di R1: fai un audit di sicurezza su quel router."
+          - La falla grave riguarda la modalità privilegiata (enable).
+          - "Seleziona R1 → 🛡️ Sicurezza → Password di amministratore: imposta una password di enable."
+        soluzione: "R1 → 🛡️ Sicurezza → password di enable a scelta (enable secret)."
+    verifiche_finali:
+      - web: {da: "PC1", url: "http://192.168.0.3"}
+      - ping: {da: "PC2", a: "@PC1"}
+    lezione: >-
+      Proteggere non vuol dire bloccare tutto: si filtra solo il traffico vietato, si lascia
+      passare quello legittimo e si chiudono con una password le porte da cui si amministra la
+      rete.
+
+  # ─── Livelli della parte cyber della campagna di Penguins Inc. (giorni 4, 5 e 6) ───
+  # Stessa rete per tutti e tre: R1 con la LAN del cliente (PC1, PC2, SRV1 = 192.168.0.4 con il sito e la
+  # posta), R2 con la rete «esterna» 192.168.1.0/24 (PC3, PC4), OSPF tra i due router.
+
+  - numero: 5
+    titolo: Le foche alla porta
+    rete: {routers: 2, pcs_per_lan: 2, servers: 1, template: "multi_lan", routing: "ospf"}
+    ticket: |-
+      Da: Nevio, il capo
+      «War room, subito! Il sito di Aringhe Fresche S.p.A. (http://192.168.0.4, sul server SRV1) è sommerso di richieste: lo stanno attaccando da fuori. Il monitoraggio dice che il diluvio arriva tutto da un portatile nella rete esterna, PC3. I clienti veri, come PC4, e i dipendenti in ufficio, come PC1, devono continuare ad aprire il sito.»
+
+      Da: Krill, sicurezza
+      «Le foche stanno anche provando a entrare nel router di frontiera R2: lì non c'è nessuna password di enable.»
+    guasti:
+      - id: foche-alla-porta
+        cosa_era_rotto: >-
+          Nessun filtro all'ingresso della rete: il portatile delle foche (PC3) poteva tempestare
+          di richieste il server del cliente.
+        sintomo: "PC3, il portatile delle foche, raggiunge ancora il server SRV1."
+        rompi: []          # niente da rompere: l'attacco è già in corso
+        verifiche:
+          - bloccato: {da: "PC3", a: "SRV1"}
+          - web: {da: "PC4", url: "http://192.168.0.4"}
+          - web: {da: "PC1", url: "http://192.168.0.4"}
+        indizi:
+          - >-
+            Prima scopri l'indirizzo di chi attacca: seleziona PC3 e leggi il suo IP (o usa
+            «ipconfig» dal suo prompt).
+          - >-
+            Un'ACL standard filtra in base a chi manda il pacchetto: nega solo quell'indirizzo
+            (host) e permetti tutto il resto, o bloccherai anche i clienti veri.
+          - >-
+            Il punto migliore è il router più vicino all'attaccante: R2 → 🛡️ Sicurezza → Nuova ACL,
+            applicata sulla porta verso la rete esterna (GigabitEthernet0/1), in ingresso.
+        soluzione: >-
+          Su R2 un'ACL standard: deny host <IP di PC3>, poi permit any; applicata su
+          GigabitEthernet0/1 in ingresso.
+      - id: router-di-frontiera
+        cosa_era_rotto: "R2 non aveva una password di enable: le foche potevano diventarne amministratrici."
+        sintomo: "L'audit di R2 trova ancora la modalità privilegiata senza password."
+        rompi: []
+        verifiche:
+          - audit_pulito: {dispositivo: "R2", falle: [NO_ENABLE_SECRET]}
+        indizi:
+          - "Krill parla di R2: fai un audit di sicurezza su quel router."
+          - La falla riguarda la modalità privilegiata (enable).
+          - "Seleziona R2 → 🛡️ Sicurezza → Password di amministratore: imposta una password di enable."
+        soluzione: "R2 → 🛡️ Sicurezza → password di enable a scelta (enable secret)."
+    verifiche_finali:
+      - web: {da: "PC4", url: "http://192.168.0.4"}
+      - ping: {da: "PC1", a: "@PC4"}
+    lezione: >-
+      Rispondere a un attacco vuol dire prima riconoscere da dove arriva (detection) e poi
+      fermare solo quello (response), il più vicino possibile alla sorgente, senza lasciare
+      fuori i clienti veri.
+
+  - numero: 6
+    titolo: Pesca a strascico
+    rete: {routers: 2, pcs_per_lan: 2, servers: 1, template: "multi_lan", routing: "ospf"}
+    ticket: |-
+      Da: Nevio, il capo
+      «Nuovo allarme da Aringhe Fresche S.p.A.: da stamattina tutti ricevono email strane che chiedono la password. Partono dal PC di un dipendente della filiale, PC3: è compromesso. Va isolato dal server di posta SRV1 (192.168.0.4) subito, ma il suo vicino di scrivania, PC4, deve continuare a usare la posta e a lavorare con la sede (PC1).»
+
+      Da: Krill, sicurezza
+      «Peggio: il dipendente ha risposto a una di quelle email. Sul router di filiale R2 c'è un utente amministratore con la password scritta in chiaro nella configurazione: va tolto o ricreato con una password cifrata.»
+    guasti:
+      - id: pc-compromesso
+        cosa_era_rotto: >-
+          Il PC compromesso (PC3) poteva ancora raggiungere il server di posta e mandare email di
+          phishing a tutti.
+        sintomo: "PC3, il PC compromesso, raggiunge ancora il server di posta SRV1."
+        rompi: []
+        verifiche:
+          - bloccato: {da: "PC3", a: "SRV1"}
+          - ping: {da: "PC4", a: "192.168.0.4"}
+          - ping: {da: "PC4", a: "@PC1"}
+        indizi:
+          - >-
+            Isolare vuol dire staccare dalla rete solo il PC compromesso: i vicini devono
+            continuare a lavorare.
+          - >-
+            Due strade: spegnere la porta dello switch a cui è collegato PC3, oppure un'ACL su R2
+            che blocca solo il suo indirizzo.
+          - "La più rapida: seleziona SW2 → Porte → la porta di PC3 (FastEthernet0/1) → spenta."
+        soluzione: >-
+          SW2 → porta FastEthernet0/1 spenta (isolamento fisico), oppure su R2 un'ACL che nega
+          l'IP di PC3 e permette il resto, in ingresso su GigabitEthernet0/1.
+      - id: utente-in-chiaro
+        cosa_era_rotto: >-
+          Su R2 l'utente «gabbiano» aveva la password in chiaro: chiunque leggesse la
+          configurazione poteva diventare amministratore.
+        sintomo: "L'audit di R2 trova ancora un utente con la password in chiaro."
+        rompi:
+          - comandi:
+              dispositivo: R2
+              righe:
+                - "enable"
+                - "configure terminal"
+                - "username gabbiano privilege 15 password 0 aringa123"
+                - "end"
+        verifiche:
+          - audit_pulito: {dispositivo: "R2", falle: [USER_CREDENTIAL_REVERSIBLE]}
+        indizi:
+          - "Seleziona R2 → 🛡️ Sicurezza → «Mostra gli utenti»: c'è un account con la password in chiaro?"
+          - >-
+            «password» salva la password in modo reversibile; «secret» la salva cifrata. Un
+            account rubato va comunque cancellato.
+          - "R2 → 🛡️ Sicurezza → Utenti locali → «Togli» su gabbiano (dalla console: «no username gabbiano»)."
+        soluzione: "R2 → 🛡️ Sicurezza → Utenti locali → togli gabbiano (oppure username gabbiano secret <nuova password>)."
+    verifiche_finali:
+      - ping: {da: "PC4", a: "192.168.0.4"}
+      - ping: {da: "PC1", a: "@PC4"}
+    lezione: >-
+      Contro il phishing servono tre mosse: isolare subito la macchina compromessa, cambiare le
+      credenziali rubate e spiegare alle persone come riconoscere le email truffa.
+
+  - numero: 7
+    titolo: Antartide sotto assedio
+    rete: {routers: 2, pcs_per_lan: 2, servers: 1, template: "multi_lan", routing: "ospf"}
+    ticket: |-
+      Da: Nevio, il capo
+      «È il giorno peggiore: l'intera rete del Governo dell'Antartide è sotto attacco. Dalla rete esterna 192.168.1.0/24, ormai tutta in mano alle foche (PC3 e PC4), non deve più arrivare niente al server SRV1. Dentro, PC1 e PC2 devono continuare a usare il sito (http://192.168.0.4).»
+
+      Da: Krill, sicurezza
+      «Sul router della sede R1 ho trovato tre cose: un account "foca" che non ha creato nessuno di noi, le password scritte in chiaro nella configurazione e, sul PC del ministro (PC2), un gateway strano che non è il nostro router: dev'essere 192.168.0.1.»
+    guasti:
+      - id: assedio
+        cosa_era_rotto: >-
+          Tutta la rete esterna in mano alle foche poteva raggiungere il server del governo.
+        sintomo: "Dalla rete esterna (PC3, PC4) si raggiunge ancora il server SRV1."
+        rompi: []
+        verifiche:
+          - bloccato: {da: "PC3", a: "SRV1"}
+          - bloccato: {da: "PC4", a: "SRV1"}
+          - web: {da: "PC1", url: "http://192.168.0.4"}
+          - web: {da: "PC2", url: "http://192.168.0.4"}
+        indizi:
+          - "Questa volta gli attaccanti sono un'intera rete, non un solo indirizzo."
+          - >-
+            Un'ACL può negare una rete intera: deny 192.168.1.0 con wildcard 0.0.0.255, poi permit
+            any.
+          - "Mettila su R1, sulla porta verso R2 (GigabitEthernet0/0), in ingresso; oppure su R2."
+        soluzione: >-
+          ACL standard su R1: deny 192.168.1.0 0.0.0.255, permit any; applicata su
+          GigabitEthernet0/0 in ingresso.
+      - id: account-foca
+        cosa_era_rotto: Su R1 c'era un account amministratore «foca» lasciato dagli attaccanti (una backdoor).
+        sintomo: "L'audit di R1 trova ancora un utente con la password in chiaro."
+        rompi:
+          - comandi:
+              dispositivo: R1
+              righe:
+                - "enable"
+                - "configure terminal"
+                - "username foca privilege 15 password 0 pesce"
+                - "end"
+        verifiche:
+          - audit_pulito: {dispositivo: "R1", falle: [USER_CREDENTIAL_REVERSIBLE]}
+        indizi:
+          - "Seleziona R1 → 🛡️ Sicurezza → «Mostra gli utenti»: chi è quell'account?"
+          - "Un account che nessuno ha creato non si cambia: si cancella."
+          - "R1 → 🛡️ Sicurezza → Utenti locali → «Togli» su foca (dalla console: «no username foca»)."
+        soluzione: "R1 → no username foca."
+      - id: password-leggibili
+        cosa_era_rotto: >-
+          Su R1 le password erano scritte in chiaro nella configurazione: chi riusciva a leggerla
+          (come le foche) se le poteva copiare.
+        sintomo: "L'audit di R1 trova ancora le password in chiaro nella configurazione."
+        rompi: []          # la falla c'è già nella rete di partenza
+        verifiche:
+          - audit_pulito: {dispositivo: "R1", falle: [NO_SERVICE_PASSWORD_ENCRYPTION]}
+        indizi:
+          - "Krill ne ha parlato: chi legge la configurazione di R1 legge anche le password."
+          - Esiste un servizio di IOS che nasconde tutte le password scritte nella configurazione.
+          - "R1 → 🛡️ Sicurezza → spunta «Cifra le password» e premi Proteggi (dalla console: «service password-encryption»)."
+        soluzione: "R1 → service password-encryption."
+      - id: gateway-dirottato
+        cosa_era_rotto: >-
+          Il gateway di PC2, il PC del ministro, era stato cambiato in 192.168.0.66: un indirizzo
+          che non è il router, dove le foche potevano intercettare il traffico.
+        sintomo: "PC2 non riesce a parlare con le reti fuori dalla sua LAN."
+        rompi:
+          - ip_host: {dispositivo: "PC2", ip: "@PC2", maschera: "255.255.255.0", gateway: "192.168.0.66"}
+        verifiche:
+          - ping: {da: "PC2", a: "10.0.0.2"}
+        vincolo:
+          nella_rete:
+            dispositivo: PC2
+            rete: 192.168.0.0/24
+            messaggio: "PC2 è nella sede: deve restare nella rete 192.168.0.0/24."
+        indizi:
+          - "PC2 risponde nella sua LAN, ma fuori no: chi decide dove manda il traffico verso le altre reti?"
+          - "Seleziona PC2 e leggi il suo gateway."
+          - "Il gateway giusto è il router della LAN: 192.168.0.1."
+        soluzione: "PC2 → gateway 192.168.0.1 (oppure di nuovo in DHCP)."
+    verifiche_finali:
+      - web: {da: "PC1", url: "http://192.168.0.4"}
+      - ping: {da: "PC2", a: "10.0.0.2"}
+    lezione: >-
+      In un attacco grande non c'è una sola falla: si blocca chi attacca, si cercano le backdoor
+      (account, password leggibili, configurazioni dirottate) e si controlla tutto di nuovo
+      prima di dichiarare la rete sicura.
+
+  - numero: 8
+    titolo: Il canale nascosto
+    rete: {routers: 2, pcs_per_lan: 2, servers: 1, template: "multi_lan", routing: "ospf"}
+    # Il «rumore di fondo» della rete, che lo sniffer vede: due clienti che usano il sito e la reverse shell
+    # (PC2, infetto, che chiama il server delle foche PC3 sulla porta 4444 e riprova di continuo).
+    traffico:
+      - {da: PC4, comando: "web http://192.168.0.4"}
+      - {da: PC2, comando: "telnet @PC3 4444"}
+      - {da: PC1, comando: "ping 192.168.0.1"}
+    ticket: |-
+      Da: Nevio, il capo
+      «Il SOC di Aringhe Fresche ha un brutto presentimento: qualcosa nella sede parla con Internet anche quando gli uffici sono vuoti. Potrebbe essere una reverse shell: un PC infetto che chiama lui l'attaccante, così il firewall lo lascia uscire. Nessuno sa quale PC né verso dove.»
+
+      Da: Krill, sicurezza
+      «Metti lo sniffer sul router della sede (R1) e guarda chi parla con chi. Quando trovi il server dell'attaccante, taglia ogni contatto tra la sede e quell'indirizzo. Il sito (http://192.168.0.4) deve continuare a funzionare per tutti, anche per il PC infetto (lo ripuliamo dopo) e per i clienti da fuori (PC4).»
+    guasti:
+      - id: shell-inversa
+        cosa_era_rotto: >-
+          PC2 era infetto e apriva di continuo una connessione verso il server delle foche (PC3) sulla
+          porta 4444: una reverse shell, il canale con cui l'attaccante lo comandava da fuori.
+        sintomo: "Dalla sede si raggiunge ancora il server dell'attaccante."
+        rompi: []          # la shell c'è già: è il traffico di fondo del livello
+        verifiche:
+          - bloccato: {da: "PC2", a: "PC3"}
+          - bloccato: {da: "PC1", a: "PC3"}
+          - web: {da: "PC2", url: "http://192.168.0.4"}
+          - web: {da: "PC4", url: "http://192.168.0.4"}
+        indizi:
+          - >-
+            Seleziona R1 → 📡 Sniffer → «Cattura il traffico». Cerca una connessione verso fuori su
+            una porta strana: il web usa la 80, una reverse shell spesso la 4444.
+          - >-
+            Lo sniffer ti dice quale PC chiama e l'IP del server dell'attaccante. Taglia ogni contatto
+            con quell'IP, per tutta la sede: un'ACL che nega «verso quell'host» e permette il resto.
+          - >-
+            R1 → 🛡️ Sicurezza → Nuova ACL estesa: nega ip da any verso l'IP del server delle foche,
+            poi permetti ip any any; applicala sulla porta verso la LAN (GigabitEthernet0/1) in ingresso.
+        soluzione: >-
+          Su R1 un'ACL estesa: deny ip any host <IP di PC3>, poi permit ip any any; applicata su
+          GigabitEthernet0/1 in ingresso. Poi il PC infetto (PC2) va ripulito.
+    verifiche_finali:
+      - web: {da: "PC1", url: "http://192.168.0.4"}
+      - web: {da: "PC4", url: "http://192.168.0.4"}
+    lezione: >-
+      Una reverse shell non entra dalla porta principale: è il PC infetto che chiama fuori. Per
+      vederla bisogna guardare il traffico in uscita (sniffer), notare le porte e le destinazioni che
+      non tornano, e poi chiudere il canale verso l'attaccante senza fermare il lavoro.
+
+  - numero: 9
+    titolo: La vetrina
+    # Rete costruita a passi (pt_full_build non conosce il firewall): un ASA con tre zone. La rete interna
+    # (PC1), la DMZ con il server del sito (SRV1) e Internet (PC2, un cliente qualsiasi).
+    costruisci:
+      - aggiungi: {tipo: firewall, nome: FW1, x: 520, y: 260}
+      - aggiungi: {tipo: pc, nome: PC1, x: 240, y: 260}
+      - aggiungi: {tipo: server, nome: SRV1, x: 520, y: 470}
+      - aggiungi: {tipo: pc, nome: PC2, x: 800, y: 260}
+      - collega: {a: FW1, b: PC1}
+      - collega: {a: FW1, b: SRV1}
+      - collega: {a: FW1, b: PC2}
+      - zona_firewall: {dispositivo: FW1, verso: PC1, zona: inside, ip: 10.10.10.1}
+      - zona_firewall: {dispositivo: FW1, verso: SRV1, zona: dmz, ip: 172.16.0.1}
+      - zona_firewall: {dispositivo: FW1, verso: PC2, zona: outside, ip: 203.0.113.1}
+      - ip_host: {dispositivo: PC1, ip: 10.10.10.10, gateway: 10.10.10.1}
+      - ip_host: {dispositivo: SRV1, ip: 172.16.0.10, gateway: 172.16.0.1}
+      - ip_host: {dispositivo: PC2, ip: 203.0.113.10, gateway: 203.0.113.1}
+      # le regole lasciate dal collega di prima: due sbagliate, e manca quella che serve
+      - regole_firewall:
+          dispositivo: FW1
+          regole:
+            - {da: dmz, verso: inside, azione: permetti, protocollo: ip}
+            - {da: outside, verso: dmz, azione: permetti, protocollo: tcp, porta: 21, destinazione: 172.16.0.10}
+    traffico:
+      - {da: PC2, comando: "web http://172.16.0.10"}
+      - {da: PC1, comando: "web http://172.16.0.10"}
+    ticket: |-
+      Da: Fiocco, titolare di Gelateria Polare
+      «Abbiamo messo il sito nuovo (http://172.16.0.10) sul server SRV1, nella DMZ, ma i clienti da Internet (come PC2) non riescono ad aprirlo. Dal negozio (PC1) invece si vede.»
+
+      Da: Krill, sicurezza
+      «Ho dato un'occhiata alle regole del firewall FW1 lasciate dal tecnico di prima: c'è una regola che fa entrare la DMZ nella rete interna (se il server venisse bucato, l'attaccante sarebbe dentro), e una che espone a Internet anche l'FTP del server. Da Internet deve vedersi solo il sito.»
+    guasti:
+      - id: sito-chiuso
+        cosa_era_rotto: >-
+          Nessuna regola permetteva a Internet (outside, livello 0) di aprire connessioni verso il sito
+          in DMZ (livello 50): di base si entra solo verso livelli più bassi.
+        sintomo: "Da Internet (PC2) il sito non si apre."
+        rompi: []
+        verifiche:
+          - web: {da: "PC2", url: "http://172.16.0.10"}
+        indizi:
+          - "Seleziona FW1: Internet è la zona outside (0), il sito sta in dmz (50). Chi può entrare in chi?"
+          - Di base una zona apre connessioni solo verso zone con livello più basso. Serve un'eccezione.
+          - "FW1 → 📜 Regole: da outside verso dmz, permetti, tcp porta 80, destinazione 172.16.0.10."
+        soluzione: "FW1 → regola da outside verso dmz: permetti tcp 80 verso 172.16.0.10."
+      - id: dmz-dentro-casa
+        cosa_era_rotto: >-
+          Una regola permetteva alla DMZ di aprire connessioni verso la rete interna: se il server del
+          sito venisse bucato, l'attaccante arriverebbe dritto in negozio.
+        sintomo: "Dalla DMZ (SRV1) si raggiunge la rete interna (PC1)."
+        rompi: []
+        verifiche:
+          - bloccato: {da: "SRV1", a: "PC1"}
+        indizi:
+          - "La DMZ è una zona «di mezzo»: i suoi server sono esposti, quindi non devono entrare nella rete interna."
+          - Guarda le regole di FW1 che partono dalla zona dmz.
+          - "FW1 → 📜 Regole: togli la regola da dmz verso inside."
+        soluzione: "FW1 → togli la regola «da dmz verso inside, permetti ip»."
+      - id: ftp-esposto
+        cosa_era_rotto: >-
+          Una regola esponeva a Internet anche l'FTP del server (porta 21): un servizio in più da
+          attaccare, che ai clienti non serve.
+        sintomo: "Da Internet si raggiunge ancora la porta 21 (FTP) del server."
+        rompi: []
+        verifiche:
+          - porta: {da: "PC2", a: "172.16.0.10", porta: 21, aperta: false}
+        indizi:
+          - "Da PC2 usa 🔍 Scansione delle porte verso 172.16.0.10: quali porte risultano aperte?"
+          - Da Internet deve vedersi solo il web (porta 80).
+          - "FW1 → 📜 Regole: togli la regola per la porta 21. In alternativa spegni l'FTP del server (🔌 Servizi esposti)."
+        soluzione: "FW1 → togli la regola «da outside verso dmz, tcp 21» (oppure spegni l'FTP su SRV1)."
+    verifiche_finali:
+      - web: {da: "PC2", url: "http://172.16.0.10"}
+      - web: {da: "PC1", url: "http://172.16.0.10"}
+      - bloccato: {da: "PC2", a: "PC1"}
+    lezione: >-
+      La DMZ è la vetrina: ci stanno i server che il mondo deve vedere, separati sia da Internet sia
+      dalla rete interna. Da Internet si apre solo quello che serve (il web), e dalla DMZ non si entra
+      mai in casa.
+
+# Messaggi che il gioco scrive mentre prepara e verifica i livelli (avvisi, passi in corso, diario).
+# I segnaposto tra graffe ({titolo}, {punti}…) vengono sostituiti dal gioco: lasciali com'è.
+messaggi:
+  svuoto_tavolo: "Svuoto il tavolo di Packet Tracer"
+  costruisco: "Costruisco la rete del livello {numero}: «{titolo}»"
+  controllo_partenza: "Controllo che la rete di partenza funzioni"
+  rompo: "Qualcuno ci mette le mani… 😈"
+  controllo_guasti: "Controllo che i guasti si vedano davvero"
+  pronto: "Livello {numero} pronto: leggi il ticket!"
+  pronto_diario: "🚑 Livello {numero} «{titolo}»: nuovo ticket in arrivo"
+  istruzioni: "Leggi il ticket e trova i guasti. Quando pensi di aver riparato qualcosa premi «Verifica»."
+  avanzo_tempo: "Faccio avanzare il tempo di Packet Tracer (STP, ARP)"
+  troppo_bloccato: "hai bloccato anche traffico che deve passare ({motivo})"
+  scorciatoia: "il sintomo è sparito ma la riparazione non rispetta il ticket: {motivo}"
+  guasto_riparato_diario: "🔧 Guasto riparato: {titolo}"
+  ancora_da_sistemare: "Ancora da sistemare: {elenco}"
+  riparati_uno: "Hai riparato 1 guasto! "
+  riparati_piu: "Hai riparato {numero} guasti! "
+  controllo_finale: "Controllo finale: tutta la rete"
+  finale_fallito: "I guasti del ticket sono a posto, ma qualcos'altro non va: {motivo}. Hai rotto qualcosa riparando?"
+  completato: "Livello completato!"
+  bonus: ""
+  completato_diario: "🏆 Livello {numero} «{titolo}» completato"
+  indizi_finiti: "Indizi finiti per questo guasto: puoi arrenderti per vedere la soluzione."
+  indizio_diario: "💡 Indizio {numero}"
+  soluzione: "Soluzione: {soluzione} Applicala e premi «Verifica»."
+  soluzione_diario: "🏳️ Soluzione mostrata: {titolo}"
+  nessun_livello: "Nessun livello in corso."
+  nessun_guasto_aperto: "Non ci sono guasti aperti: premi «Verifica»."

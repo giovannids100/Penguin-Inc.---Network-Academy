@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Penguin INC</title>
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&display=swap">
+<link rel="stylesheet" href="/assets/storia.css">
+<link rel="stylesheet" href="/assets/monitor.css">
+<!-- il fiocco di neve della barra del monitor (penguin/ui/fiocco.png), ingrandito senza sfumature -->
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/penguin/ui/favicon.png">
+<link rel="apple-touch-icon" href="/assets/penguin/ui/apple-touch-icon.png">
+</head>
+<body>
+<!--
+  Client demo di PT Academy. I testi non sono qui: gli elementi con data-t="zona.chiave" vengono riempiti
+  da scripts/app.js con i testi di gioco/interfaccia.yaml (data-t-title e data-t-placeholder per gli
+  attributi). Per cambiare un testo modifica il YAML, non questo file.
+-->
+
+<div id="loading" class="login muted">…</div>
+
+<div id="login" class="login hidden">
+  <form id="loginForm" class="login-card">
+    <div class="brand big"><span class="logo">⟠</span> <span data-t="generale.nome"></span></div>
+    <p data-t="generale.motto"></p>
+    <label><span data-t="accesso.codice"></span>
+      <input id="code" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" data-t-placeholder="accesso.esempio" required>
+    </label>
+    <button class="btn primary" type="submit" data-t="accesso.entra"></button>
+    <p id="loginErr" class="err"></p>
+  </form>
+</div>
+
+<!-- Penguin Inc: la schermata iniziale, con la scelta del nome (scripts/storia.js, testi in gioco/storia.yaml) -->
+<div id="titolo" class="titolo hidden">
+  <div class="titolo-neve" aria-hidden="true"></div>
+  <form id="titoloForm" class="titolo-card" autocomplete="off">
+    <h1 class="titolo-logo" id="titoloLogo"></h1>
+    <p class="titolo-sotto" id="titoloSotto"></p>
+    <div class="titolo-pinguino">
+      <img src="/assets/penguin/ritratti/pinguino_jr_idle.png" alt="">
+      <span class="titolo-targhetta" id="titoloTarghetta"></span>
+    </div>
+    <label for="nomeGiocatore" id="titoloDomanda"></label>
+    <input id="nomeGiocatore" maxlength="16" spellcheck="false">
+    <p class="err" id="titoloErr"></p>
+    <div class="titolo-azioni" id="titoloAzioni"></div>
+    <p class="titolo-nota" id="titoloNota"></p>
+  </form>
+</div>
+
+<!-- Penguin Inc: l'ufficio (scripts/storia.js, testi in gioco/storia.yaml). Il «monitor» è #app qui sotto. -->
+<div id="ufficio" class="ufficio hidden">
+  <header class="hud">
+    <div class="hud-giorno"><b class="pix" id="hudGiorno"></b><span id="hudTitolo"></span></div>
+    <div class="hud-obiettivo" id="hudObiettivo"></div>
+    <div class="hud-destra">
+      <span class="hud-buoni">🎟️ <b id="hudBuoni">0</b></span>
+      <span class="hud-buoni">☕ <b id="hudCaffe">0</b></span>
+      <button id="btnNuova" class="btn small"></button>
+    </div>
+  </header>
+  <div class="scena-wrap">
+    <div id="scena" class="scena"></div>
+    <div id="dialogo" class="dialogo hidden">
+      <img class="ritratto" alt="">
+      <div class="fumetto"><div class="chi"></div><p class="testo"></p><div class="scelte"></div><span class="avanti"></span></div>
+    </div>
+  </div>
+  <div id="cartello" class="cartello hidden"></div>
+</div>
+<div id="avvioMonitor" class="avvio-monitor hidden"><img src="/assets/penguin/ui/monitor.png" alt=""></div>
+
+<div id="app" class="app hidden">
+  <header class="top">
+    <div class="brand"><span class="logo">⟠</span> <span data-t="generale.nome"></span></div>
+    <span id="appGiorno" class="app-giorno"></span>
+    <nav class="tabs" role="tablist">
+      <button class="tab" data-mode="academy" role="tab"><span data-t="schede.accademia"></span> <small data-t="schede.accademia_sotto"></small></button>
+      <button class="tab" data-mode="rescue" role="tab"><span data-t="schede.soccorso"></span> <small data-t="schede.soccorso_sotto"></small></button>
+    </nav>
+    <div class="top-right">
+      <span id="appBuoni" class="app-buoni">🎟️ <b>0</b></span>
+      <span id="ptStatus" class="pt-status" data-t-title="generale.collegamento_pt"><i></i><span>PT</span></span>
+      <button id="btnUfficio" class="btn-ufficio" aria-label="Ufficio">🏢 <span>Ufficio</span> <i class="chiudi"></i></button>
+    </div>
+  </header>
+  <div id="contentError" class="banner bad hidden" style="margin:8px 12px 0"></div>
+
+  <main class="layout">
+    <aside class="panel left" id="leftPanel">
+      <div id="gamePanel"></div>
+      <section class="card log">
+        <h3 data-t="diario.titolo"></h3>
+        <ul id="log"></ul>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <div class="toolbar" id="toolbar">
+        <div class="group">
+          <button class="tool active" data-tool="select" data-t-title="strumenti.sposta_aiuto">🖐️ <span data-t="strumenti.sposta"></span></button>
+          <button class="tool" data-tool="cable" data-t-title="strumenti.cavo_aiuto">🔌 <span data-t="strumenti.cavo"></span></button>
+          <button class="tool" data-tool="erase" data-t-title="strumenti.togli_aiuto">🗑️ <span data-t="strumenti.togli"></span></button>
+        </div>
+        <!-- i pulsanti dei dispositivi li crea app.js da gioco/impostazioni.yaml («dispositivi») -->
+        <div class="group add" id="addTools"><span class="lbl" data-t="strumenti.aggiungi"></span></div>
+        <div class="group">
+          <button class="tool" id="fitBtn" data-t-title="strumenti.adatta">⤢</button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="hintBar" class="hint-bar"></div>
+        <div id="empty" class="empty hidden"><div data-t="tavolo.vuoto"></div></div>
+      </div>
+      <div class="legend">
+        <span><i class="dot up"></i> <span data-t="tavolo.legenda_attivo"></span></span>
+        <span><i class="dot wait"></i> <span data-t="tavolo.legenda_attesa"></span></span>
+        <span><i class="dot off"></i> <span data-t="tavolo.legenda_spenta"></span></span>
+      </div>
+    </section>
+
+    <aside class="panel right" id="inspector"></aside>
+  </main>
+  <!-- il «mento» del monitor di Penguin Inc: solo decorazione (assets/monitor.css) -->
+  <footer class="mento" aria-hidden="true"><i class="logo-mento"></i><i class="led"></i></footer>
+
+  <div id="job" class="job hidden">
+    <div class="job-head"><span class="spinner"></span><b id="jobTitle"></b><span id="jobTime" class="muted"></span></div>
+    <ol id="jobSteps"></ol>
+  </div>
+  <div id="toasts" class="toasts"></div>
+</div>
+
+<script src="/scripts/app.js"></script>
+<script src="/scripts/storia.js"></script>
+</body>
+</html>

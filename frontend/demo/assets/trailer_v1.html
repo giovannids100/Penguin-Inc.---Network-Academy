@@ -1,0 +1,715 @@
+<title>Penguin Inc Trailer v1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Press+Start+2P&family=VT323&display=swap">
+<style>
+/* Prima versione del trailer (2:32), ripristinata. Una sala buia da proiezione: lo schermo 16:9 al centro, i comandi sotto. */
+:root {
+  --notte: #0b1020;
+  --pannello: #141c33;
+  --bordo: #0a0f1c;
+  --ghiaccio: #e8f0fa;
+  --tenue: #8fa2c6;
+  --oro: #f5c542;
+  --blu: #2f6fd6;
+  --rosso: #d9443c;
+  --pixel: "Press Start 2P", ui-monospace, monospace;
+  --testo: "Pixelify Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--notte); color: var(--ghiaccio); font-family: var(--testo);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.schermo {
+  position: relative; width: min(100%, calc((100vh - 120px) * 16 / 9)); max-width: 100%; aspect-ratio: 16 / 9;
+  background: #000; border: 4px solid var(--bordo); border-radius: 6px; box-shadow: 0 16px 60px rgba(0, 0, 0, .6);
+}
+canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; border-radius: 2px; }
+.via {
+  position: absolute; inset: 0; display: grid; place-items: center; background: rgba(6, 9, 18, .55);
+  border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0;
+}
+.via span {
+  font-family: var(--pixel); font-size: clamp(12px, 2.2vw, 20px); background: var(--oro); color: var(--bordo);
+  border: 4px solid var(--bordo); border-radius: 4px; padding: 16px 22px; box-shadow: 0 5px 0 var(--bordo);
+}
+.via:hover span { filter: brightness(1.08); }
+.via:focus-visible span { outline: 3px solid #fff; outline-offset: 3px; }
+.comandi {
+  width: min(100%, calc((100vh - 120px) * 16 / 9)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+}
+.comandi button {
+  font-family: var(--pixel); font-size: 11px; color: var(--ghiaccio); background: var(--pannello);
+  border: 3px solid var(--bordo); border-radius: 3px; padding: 8px 10px; cursor: pointer; box-shadow: 0 3px 0 var(--bordo);
+}
+.comandi button:hover { background: #1d2850; }
+.comandi button:active { transform: translateY(3px); box-shadow: none; }
+.comandi button:focus-visible { outline: 3px solid var(--oro); }
+.comandi .rec { background: var(--rosso); color: #fff; }
+.barra { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.barra input { flex: 1; min-width: 0; accent-color: var(--oro); }
+.tempo { font-family: var(--pixel); font-size: 10px; color: var(--tenue); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nota { width: min(100%, calc((100vh - 120px) * 16 / 9)); margin: 0; font-size: 13px; color: var(--tenue); }
+.nota b { color: var(--ghiaccio); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .via span { box-shadow: none; } }
+</style>
+
+<div class="schermo">
+  <canvas id="tela" width="1280" height="720" aria-label="Trailer di Penguin Inc, prima versione"></canvas>
+  <button class="via" id="via" type="button"><span>▶ Guarda il trailer</span></button>
+</div>
+<div class="comandi">
+  <button id="play" type="button" aria-label="Riproduci o metti in pausa">▶</button>
+  <button id="dacapo" type="button" aria-label="Ricomincia dall'inizio">↺</button>
+  <div class="barra"><input id="pos" type="range" min="0" max="152" step="0.1" value="0" aria-label="Posizione nel trailer"><span class="tempo" id="tempo">0:00 / 2:32</span></div>
+  <button id="audio" type="button" aria-label="Audio acceso o spento">🔊</button>
+  <button id="intero" type="button" aria-label="Schermo intero">⛶</button>
+  <button id="registra" class="rec" type="button" hidden>⏺ Registra video</button>
+</div>
+<p class="nota" id="nota">Prima versione del trailer di <b>Penguin Inc</b>, il serious game su reti e cybersicurezza dentro Cisco Packet Tracer. Durata 2:32, con musica.</p>
+
+<script>
+"use strict";
+/* Trailer di Penguin Inc, prima versione (ripristinata): tutto è disegnato su un canvas 1280×720 a partire dagli
+ * asset del gioco (cartella penguin/, accanto a questa pagina). La musica è generata con Web Audio.
+ * L'orologio è quello dell'audio: pausa = audio sospeso, così immagini e musica restano sempre insieme.
+ * Ogni scena è una funzione del tempo: si può saltare in qualunque punto. */
+
+const W = 1280, H = 720, DUR = 152;
+const tela = document.getElementById("tela");
+const g = tela.getContext("2d");
+g.imageSmoothingEnabled = false;
+
+/* ───────────── immagini ───────────── */
+const FILE = {
+  ufficio: "penguin/scene/ufficio.png", allarme: "penguin/scene/ufficio_allarme.png", war: "penguin/scene/war_room.png",
+  jrCammina: "penguin/sprite/jr_cammina.png", jrSeduto: "penguin/sprite/jr_seduto.png",
+  srCammina: "penguin/sprite/sr_cammina.png", srSeduto: "penguin/sprite/sr_seduto.png",
+  monitor: "penguin/ui/monitor.png", cursore: "penguin/ui/cursore.png", mano: "penguin/ui/mano.png",
+  jr_idle: "penguin/ritratti/pinguino_jr_idle.png", jr_preoccupato: "penguin/ritratti/pinguino_jr_preoccupato.png",
+  jr_esausto: "penguin/ritratti/pinguino_jr_esausto.png",
+  sr_caffe: "penguin/ritratti/pinguino_sr_caffe.png", sr_tastiera: "penguin/ritratti/pinguino_sr_tastiera.png",
+  sr_spaventato: "penguin/ritratti/pinguino_sr_spaventato.png",
+  boss_arrabbiato: "penguin/ritratti/boss_arrabbiato.png", boss_risata: "penguin/ritratti/boss_risata.png",
+  foca_parla: "penguin/ritratti/foca_parla.png", foca_blink: "penguin/ritratti/foca_blink.png",
+};
+const IMG = {};
+function caricaImmagini() {
+  return Promise.all(Object.entries(FILE).map(([k, src]) => new Promise((ok) => {
+    const im = new Image();
+    im.onload = () => { IMG[k] = im; ok(); };
+    im.onerror = () => ok();          // un'immagine mancante non ferma il trailer
+    im.src = src;
+  })));
+}
+
+/* ───────────── strumenti di disegno ───────────── */
+const C = { notte: "#0b1020", bordo: "#0e1a33", titolo: "#2c4a7c", ghiaccio: "#e8f0fa", oro: "#f5c542", blu: "#2f6fd6",
+  verde: "#1f9d55", rosso: "#d9443c", testo: "#142033", tenue: "#8fa2c6", piastrella: "#dcebf5", riga: "#c4d9ea" };
+const PIX = (s) => `${s}px "Press Start 2P", ui-monospace, monospace`;
+const VT = (s) => `${s}px VT323, ui-monospace, monospace`;
+const PS = (s, w = 400) => `${w} ${s}px "Pixelify Sans", system-ui, sans-serif`;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => (x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+const pop = (x) => { x = clamp(x); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const mix = (a, b, x) => a + (b - a) * x;
+
+function testo(s, x, y, font, colore, allinea = "center", ombra = null) {
+  g.font = font; g.textAlign = allinea; g.textBaseline = "middle";
+  if (ombra) { g.fillStyle = ombra; g.fillText(s, x + 3, y + 3); }
+  g.fillStyle = colore; g.fillText(s, x, y);
+}
+/* Macchina da scrivere: quante lettere si vedono al tempo t. */
+const scritto = (s, t, inizio, vel = 32) => s.slice(0, Math.max(0, Math.floor((t - inizio) * vel)));
+function aCapo(s, font, larghezza) {
+  g.font = font;
+  const righe = []; let riga = "";
+  for (const p of s.split(" ")) {
+    const prova = riga ? `${riga} ${p}` : p;
+    if (g.measureText(prova).width > larghezza && riga) { righe.push(riga); riga = p; } else riga = prova;
+  }
+  if (riga) righe.push(riga);
+  return righe;
+}
+function finestra(x, y, w, h, fondo = C.ghiaccio, barra = C.titolo) {
+  g.fillStyle = "rgba(0,0,0,.4)"; g.fillRect(x + 8, y + 8, w, h);
+  g.fillStyle = C.bordo; g.fillRect(x - 4, y - 4, w + 8, h + 8);
+  g.fillStyle = fondo; g.fillRect(x, y, w, h);
+  if (barra) { g.fillStyle = barra; g.fillRect(x, y, w, 18); }
+}
+function immagine(k, x, y, w, h) { if (IMG[k]) g.drawImage(IMG[k], x, y, w, h); }
+/* Un fotogramma di un foglio di sprite (colonne × righe di celle cw × ch). */
+function sprite(k, col, riga, cw, ch, x, y, scala) {
+  if (IMG[k]) g.drawImage(IMG[k], col * cw, riga * ch, cw, ch, x, y, cw * scala, ch * scala);
+}
+
+/* Neve deterministica: dipende solo dal tempo, così funziona anche saltando avanti e indietro. */
+function neve(t, quanti = 90, alfa = .8) {
+  g.fillStyle = `rgba(232,240,250,${alfa})`;
+  for (let i = 0; i < quanti; i++) {
+    const a = (i * 7919) % 1000 / 1000, b = (i * 104729) % 1000 / 1000, v = 30 + 60 * ((i * 31) % 10) / 10;
+    const x = (a * W + Math.sin(t * .7 + i) * 18) % W;
+    const y = (b * H + t * v) % H;
+    const s = i % 3 === 0 ? 4 : 3;
+    g.fillRect(Math.round(x), Math.round(y), s, s);
+  }
+}
+function cielo() {
+  const gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, "#0b1020"); gr.addColorStop(1, "#1a2950");
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+}
+
+/* La scena dell'ufficio vista da una «telecamera»: centro (cx, cy) in pixel dell'immagine 384×288, ingrandimento z. */
+function ufficio(chiave, cx, cy, z, scuoti = 0) {
+  const ox = W / 2 - cx * z + (scuoti ? Math.sin(performance.now() / 30) * scuoti : 0);
+  const oy = H / 2 - cy * z;
+  g.fillStyle = "#0e1424"; g.fillRect(0, 0, W, H);
+  immagine(chiave, ox, oy, 384 * z, 288 * z);
+  return { ox, oy, z, p: (x, y) => [ox + x * z, oy + y * z] };
+}
+/* Un pinguino in piedi (foglio 4×4 di celle 32×32: giù, sx, dx, su) con i piedi in (x, y) dell'ufficio. */
+function pinguino(cam, k, x, y, dir, passo) {
+  const riga = { giu: 0, sx: 1, dx: 2, su: 3 }[dir];
+  const [sx, sy] = cam.p(x - 16, y - 31);
+  sprite(k, passo % 4, riga, 32, 32, sx, sy, cam.z);
+}
+
+/* Il riquadro dei dialoghi del gioco: ritratto + fumetto con nome e testo che si scrive. */
+const PERSONE = {
+  jr: { nome: "Pina", colore: "#334155" }, sr: { nome: "Jody", colore: "#1d4ed8", ruolo: "collega senior" },
+  boss: { nome: "Il Capo", colore: "#b91c1c", ruolo: "orso polare" }, foca: { nome: "???", colore: "#6d28d9", ruolo: "sconosciuto" },
+};
+function dialogo(t, inizio, chi, faccia, frase) {
+  const p = PERSONE[chi];
+  const y = 528, h = 168;
+  g.fillStyle = C.bordo; g.fillRect(36, y - 6, 180, 180);
+  g.fillStyle = chi === "boss" ? "#fde2e2" : chi === "foca" ? "#3b2a4a" : C.ghiaccio; g.fillRect(42, y, 168, 168);
+  immagine(`${chi}_${faccia}`, 42, y, 168, 168);
+  g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(238, y + 6, 1012, h);
+  g.fillStyle = C.bordo; g.fillRect(226, y - 6, 1018, h + 12);
+  g.fillStyle = C.ghiaccio; g.fillRect(232, y, 1006, h);
+  testo(p.nome, 256, y + 26, PIX(15), p.colore, "left");
+  if (p.ruolo) { g.font = PIX(15); const w = g.measureText(p.nome).width; testo(p.ruolo, 272 + w, y + 27, VT(24), "#64748b", "left"); }
+  const righe = aCapo(frase, VT(38), 950);
+  let resto = Math.max(0, Math.floor((t - inizio) * 38));
+  righe.forEach((r, i) => {
+    const pezzo = r.slice(0, resto); resto -= r.length + 1;
+    if (pezzo) testo(pezzo, 256, y + 72 + i * 38, VT(38), C.testo, "left");
+  });
+}
+/* Una battuta per intervallo: [inizio, fine, chi, faccia, frase]. */
+function battute(t, elenco) {
+  for (const [a, b, chi, faccia, frase] of elenco) if (t >= a && t < b) dialogo(t, a, chi, faccia, frase);
+}
+/* Didascalia: banda scura con testo in pixel, entra e esce con dissolvenza. */
+function didascalia(t, a, b, s, y = 70, dim = 24, colore = "#fff") {
+  if (t < a || t > b) return;
+  const al = Math.min(lin(t, a, a + .4), 1 - lin(t, b - .4, b));
+  g.save(); g.globalAlpha = al;
+  g.font = PIX(dim); const w = g.measureText(s).width;
+  g.fillStyle = "rgba(10,15,28,.82)"; g.fillRect(W / 2 - w / 2 - 24, y - dim, w + 48, dim * 2);
+  testo(s, W / 2, y + 2, PIX(dim), colore);
+  g.restore();
+}
+
+/* ───────────── icone dei dispositivi (come sul tavolo del gioco) ───────────── */
+function dispositivo(tipo, x, y, s = 1, nome = "", sotto = "") {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  g.lineWidth = 4; g.strokeStyle = C.bordo;
+  if (tipo === "router") {
+    g.fillStyle = C.blu; g.beginPath(); g.arc(0, 0, 26, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.strokeStyle = "#fff"; g.lineWidth = 3.5;
+    g.beginPath(); g.moveTo(-14, -6); g.lineTo(14, -6); g.moveTo(8, -12); g.lineTo(14, -6); g.lineTo(8, 0);
+    g.moveTo(14, 6); g.lineTo(-14, 6); g.moveTo(-8, 0); g.lineTo(-14, 6); g.lineTo(-8, 12); g.stroke();
+  } else if (tipo === "switch") {
+    g.fillStyle = "#149c92"; g.fillRect(-36, -20, 72, 40); g.strokeRect(-36, -20, 72, 40);
+    g.strokeStyle = "#fff"; g.lineWidth = 3.5;
+    g.beginPath(); g.moveTo(-20, -7); g.lineTo(18, -7); g.moveTo(12, -13); g.lineTo(18, -7); g.lineTo(12, -1);
+    g.moveTo(20, 7); g.lineTo(-18, 7); g.moveTo(-12, 1); g.lineTo(-18, 7); g.lineTo(-12, 13); g.stroke();
+  } else if (tipo === "pc") {
+    g.fillStyle = "#4a5d7e"; g.fillRect(-28, -24, 56, 38); g.strokeRect(-28, -24, 56, 38);
+    g.fillStyle = "#cfe1ff"; g.fillRect(-22, -18, 44, 26);
+    g.fillStyle = "#4a5d7e"; g.fillRect(-10, 16, 20, 6); g.fillRect(-18, 22, 36, 5);
+  } else if (tipo === "server") {
+    g.fillStyle = "#7c5cd6"; g.fillRect(-22, -28, 44, 56); g.strokeRect(-22, -28, 44, 56);
+    g.fillStyle = "#fff"; [-14, -3, 8].forEach((yy) => g.fillRect(-13, yy, 26, 4));
+    g.fillStyle = "#9ef0b0"; g.fillRect(6, 18, 6, 6);
+  }
+  g.restore();
+  if (nome) testo(nome, x, y + 50 * s, PIX(13), C.bordo);
+  if (sotto) testo(sotto, x, y + 72 * s, VT(26), "#3d4f70");
+}
+function cavo(a, b, avanzamento = 1, colore = C.titolo) {
+  g.strokeStyle = colore; g.lineWidth = 4;
+  g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(mix(a[0], b[0], avanzamento), mix(a[1], b[1], avanzamento)); g.stroke();
+}
+function lucina(p, colore) { g.fillStyle = C.bordo; g.fillRect(p[0] - 8, p[1] - 8, 16, 16); g.fillStyle = colore; g.fillRect(p[0] - 5, p[1] - 5, 10, 10); }
+/* Un pacchetto che viaggia lungo un percorso di punti; f da 0 a 1. */
+function pacchetto(percorso, f, colore = C.oro) {
+  const n = percorso.length - 1; const k = Math.min(n - 1, Math.floor(f * n)); const q = f * n - k;
+  const a = percorso[k], b = percorso[k + 1];
+  const x = mix(a[0], b[0], q), y = mix(a[1], b[1], q);
+  g.fillStyle = C.bordo; g.fillRect(x - 11, y - 9, 22, 18);
+  g.fillStyle = colore; g.fillRect(x - 8, y - 6, 16, 12);
+  g.fillStyle = C.bordo; g.fillRect(x - 8, y - 6, 16, 2);
+  return [x, y];
+}
+
+/* Il monitor del gioco: la cornice disegnata (384×288) ingrandita, e dentro lo schermo con il tavolo. */
+const MON = { x: 160, y: 0, z: 2.5 };
+const SCHERMO = { x: 160 + 13 * 2.5, y: 26 * 2.5, w: (371 - 13) * 2.5, h: (262 - 26) * 2.5 };
+function monitor(t, titoloBarra, entrata = 1) {
+  g.fillStyle = C.notte; g.fillRect(0, 0, W, H);
+  neve(t, 50, .35);
+  const s = mix(.55, 1, ease(entrata));
+  g.save(); g.translate(W / 2, H / 2); g.scale(s, s); g.translate(-W / 2, -H / 2);
+  immagine("monitor", MON.x, MON.y, 384 * MON.z, 288 * MON.z);
+  // il tavolo di Packet Tracer: piastrelle di ghiaccio come il pavimento dell'ufficio
+  g.save(); g.beginPath(); g.rect(SCHERMO.x, SCHERMO.y, SCHERMO.w, SCHERMO.h); g.clip();
+  g.fillStyle = C.piastrella; g.fillRect(SCHERMO.x, SCHERMO.y, SCHERMO.w, SCHERMO.h);
+  g.strokeStyle = C.riga; g.lineWidth = 2;
+  for (let x = SCHERMO.x; x < SCHERMO.x + SCHERMO.w; x += 44) { g.beginPath(); g.moveTo(x, SCHERMO.y); g.lineTo(x, SCHERMO.y + SCHERMO.h); g.stroke(); }
+  for (let y = SCHERMO.y; y < SCHERMO.y + SCHERMO.h; y += 44) { g.beginPath(); g.moveTo(SCHERMO.x, y); g.lineTo(SCHERMO.x + SCHERMO.w, y); g.stroke(); }
+  g.restore();
+  testo(titoloBarra, 160 + 30 * 2.5, 19 * 2.5, PIX(12), "#fff", "left");
+  return () => g.restore();   // chiamare alla fine del disegno dentro il monitor
+}
+function cursore(x, y, mano = false) { immagine(mano ? "mano" : "cursore", x - (mano ? 16 : 6), y - 4, 48, 48); }
+function consoleVerde(x, y, w, righe, t, inizio) {
+  g.fillStyle = C.bordo; g.fillRect(x - 4, y - 4, w + 8, 36 * righe.length + 28);
+  g.fillStyle = "#0b1430"; g.fillRect(x, y, w, 36 * righe.length + 20);
+  righe.forEach(([a, s], i) => { if (t >= inizio + a) testo(scritto(s, t, inizio + a, 45), x + 16, y + 28 + i * 36, VT(30), "#9ef0b0", "left"); });
+}
+function striscione(t, a, s, colore = C.oro) {
+  if (t < a) return;
+  const k = pop(lin(t, a, a + .5));
+  g.save(); g.translate(W / 2, 330); g.scale(k, k);
+  g.font = PIX(26); const w = g.measureText(s).width;
+  g.fillStyle = C.bordo; g.fillRect(-w / 2 - 30, -40, w + 60, 80);
+  g.fillStyle = colore; g.fillRect(-w / 2 - 24, -34, w + 48, 68);
+  testo(s, 0, 2, PIX(26), C.bordo);
+  g.restore();
+}
+
+/* ───────────── le scene ───────────── */
+const SCENE = [
+  { a: 0, b: 9, disegna: apertura },
+  { a: 9, b: 17, disegna: titolo },
+  { a: 17, b: 38, disegna: primoGiorno },
+  { a: 38, b: 50, disegna: giornate },
+  { a: 50, b: 80, disegna: primaRete },
+  { a: 80, b: 98, disegna: caffe },
+  { a: 98, b: 116, disegna: sicurezza },
+  { a: 116, b: 140, disegna: attacco },
+  { a: 140, b: DUR + 1, disegna: finale },
+];
+
+function apertura(t) {
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  neve(t, 70, lin(t, 0, 3) * .8);
+  if (t > .8) testo(scritto("Antartide.", t, .8, 12), W / 2, 300, VT(64), C.ghiaccio);
+  if (t > 3.2) testo(scritto("Ogni rete ha bisogno di qualcuno che la capisca.", t, 3.2, 26), W / 2, 390, VT(44), C.tenue);
+}
+
+function titolo(t) {
+  cielo(); neve(t, 110);
+  const k = pop(lin(t, 9.3, 10.3));
+  g.save(); g.translate(W / 2, 250); g.scale(k, k);
+  testo("PENGUIN INC", 0, 0, PIX(84), C.oro, "center", C.bordo);
+  g.restore();
+  if (t > 10.8) testo(scritto("Il tuo primo lavoro nel networking", t, 10.8, 30), W / 2, 345, VT(46), C.ghiaccio);
+  if (t > 12) {
+    const y = mix(H + 40, 430, ease(lin(t, 12, 13)));
+    g.fillStyle = C.bordo; g.fillRect(W / 2 - 104, y - 4, 208, 208);
+    g.fillStyle = C.ghiaccio; g.fillRect(W / 2 - 100, y, 200, 200);
+    immagine("jr_idle", W / 2 - 100, y, 200, 200);
+  }
+}
+
+function primoGiorno(t) {
+  // telecamera: da tutto l'ufficio a vicino al collega
+  const z = lin(t, 21.5, 23.5);
+  const cam = ufficio("ufficio", mix(192, 150, ease(z)), mix(144, 212, ease(z)), mix(2.5, 5, ease(z)));
+  // il protagonista entra dalla porta in basso e raggiunge Jody
+  let x = 123, y = 285, dir = "su";
+  if (t < 20.5) { y = mix(300, 252, lin(t, 17.5, 20.5)); }
+  else if (t < 22) { y = 252; x = mix(123, 146, lin(t, 20.5, 22)); dir = "dx"; }
+  else { x = 146; y = 252; dir = "dx"; }
+  const passo = t < 22 ? Math.floor(t * 7) : 0;
+  pinguino(cam, "srCammina", 172, 250, "sx", 0);
+  pinguino(cam, "jrCammina", x, y, dir, passo);
+  didascalia(t, 17.3, 21, "GIORNO 1", 64, 28, C.oro);
+  battute(t, [
+    [24, 28.5, "sr", "caffe", "Eccoti! Tu devi essere Pina, la nuova recluta. Io sono Jody."],
+    [28.5, 33, "sr", "tastiera", "Qui le reti si costruiscono davvero: con Cisco Packet Tracer."],
+    [33, 35.5, "jr", "preoccupato", "Davvero davvero?"],
+    [35.5, 38, "sr", "caffe", "Davvero. Al lavoro!"],
+  ]);
+}
+
+function giornate(t) {
+  cielo(); neve(t, 60, .5);
+  if (t > 38.2) testo(scritto("OGNI GIORNO UN CLIENTE NUOVO", t, 38.2, 22), W / 2, 110, PIX(30), C.ghiaccio, "center", C.bordo);
+  const carte = [
+    [40, "GIORNO 1", "Pescheria del Fiordo", ["La prima LAN:", "switch, PC, IP, ping."], "jr_idle"],
+    [42.3, "GIORNO 2", "Pescheria del Fiordo", ["Server, router,", "sottoreti e gateway."], "sr_tastiera"],
+    [44.6, "GIORNO 3", "Banca dei Ghiacci", ["VLAN, firewall,", "ACL e password."], "sr_spaventato"],
+  ];
+  carte.forEach(([a, giorno, cliente, righe, ritratto], i) => {
+    if (t < a) return;
+    const x0 = 90 + i * 380, x = mix(W + 40, x0, ease(lin(t, a, a + .7)));
+    finestra(x, 200, 340, 400);
+    testo(giorno, x + 170, 252, PIX(22), C.oro, "center", C.bordo);
+    testo(cliente, x + 170, 300, PS(26, 600), C.titolo);
+    g.fillStyle = C.bordo; g.fillRect(x + 106, 330, 128, 128); g.fillStyle = "#fff"; g.fillRect(x + 110, 334, 120, 120);
+    immagine(ritratto, x + 110, 334, 120, 120);
+    righe.forEach((r, k) => testo(r, x + 170, 500 + k * 36, VT(34), C.testo));
+  });
+}
+
+function primaRete(t) {
+  const fine = monitor(t, "PT Academy · Giorno 1 · Pescheria del Fiordo", lin(t, 50, 51.6));
+  const SW = [640, 270], P1 = [440, 470], P2 = [840, 470], SRV = [920, 280], R1 = [640, 130];
+  const comparso = (a) => pop(lin(t, a, a + .4));
+  // giorno 1: switch e due PC
+  const cav = (a, b, inizio) => { if (t > inizio) cavo(a, b, ease(lin(t, inizio, inizio + .8))); };
+  cav(P1, SW, 56); cav(P2, SW, 57);
+  if (t > 64) { cav(SRV, SW, 72); cav(R1, SW, 73.5); }
+  const statoPorta = (inizio) => (t < inizio + 1.6 ? C.oro : C.verde);
+  if (t > 56.8) { lucina([mix(P1[0], SW[0], .22), mix(P1[1], SW[1], .22)], statoPorta(57)); lucina([mix(SW[0], P1[0], .2), mix(SW[1], P1[1], .2)], statoPorta(57)); }
+  if (t > 57.8) { lucina([mix(P2[0], SW[0], .22), mix(P2[1], SW[1], .22)], statoPorta(58)); lucina([mix(SW[0], P2[0], .2), mix(SW[1], P2[1], .2)], statoPorta(58)); }
+  if (t > 52.5) { const k = comparso(52.5); dispositivo("switch", SW[0], SW[1], k, "SW1", "2960"); }
+  if (t > 53.8) { const k = comparso(53.8); dispositivo("pc", P1[0], P1[1], k, "PC1", t > 59.5 ? scritto("192.168.10.11/24", t, 59.5, 20) : "senza IP"); }
+  if (t > 54.8) { const k = comparso(54.8); dispositivo("pc", P2[0], P2[1], k, "PC2", t > 61 ? scritto("192.168.10.12/24", t, 61, 20) : "senza IP"); }
+  if (t > 71.5) { const k = comparso(71.5); dispositivo("server", SRV[0], SRV[1], k, "SRV1", "192.168.10.100/24"); }
+  if (t > 73) { const k = comparso(73); dispositivo("router", R1[0], R1[1], k, "R1", "gateway .1"); }
+  // il ping vero: il pacchetto va e torna
+  if (t > 66 && t < 71) {
+    const f = ((t - 66) / 1.6) % 1;
+    pacchetto([P1, SW, P2, SW, P1], f, f < .5 ? C.oro : "#9ef0b0");
+  }
+  if (t > 65 && t < 71.4) consoleVerde(232, 520, 560, [[0, "PC1> ping 192.168.10.12"], [1.4, "Risposta da 192.168.10.12: TTL=128"], [2.6, "Risposta da 192.168.10.12: TTL=128"]], t, 65);
+  if (t > 69.6 && t < 71.4) striscione(t, 69.6, "MISSIONE COMPLETATA!");
+  // il cursore che lavora
+  const tappe = [[50, 1000, 600], [52.3, 640, 270], [53.6, 440, 470], [54.6, 840, 470], [55.8, 450, 470], [56.6, 640, 280], [57.4, 840, 470], [59.2, 440, 480], [60.8, 840, 480], [63, 900, 640]];
+  let cx = tappe[0][1], cy = tappe[0][2];
+  for (let i = 1; i < tappe.length; i++) {
+    const [ta, x, y] = tappe[i], [tp, px, py] = tappe[i - 1];
+    if (t >= tp) { const q = ease(lin(t, tp, ta)); cx = mix(px, x, q); cy = mix(py, y, q); }
+  }
+  if (t < 64) cursore(cx, cy, tappe.some(([ta]) => Math.abs(t - ta) < .25));
+  fine();
+  didascalia(t, 52, 58.5, "TRASCINA. COLLEGA. CONFIGURA.", 668, 20);
+  didascalia(t, 58.8, 64.5, "OGNI AZIONE SUCCEDE DAVVERO IN PACKET TRACER", 668, 20);
+  didascalia(t, 65, 71.3, "IL GIOCO CONTROLLA CON PING VERI", 668, 20);
+  didascalia(t, 72, 79.6, "GIORNO DOPO GIORNO, LA RETE CRESCE", 668, 20);
+}
+
+function caffe(t) {
+  // centro x 128: con l'ingrandimento 5 il bordo sinistro dell'ufficio coincide con quello dello schermo
+  const cam = ufficio("ufficio", mix(213, 128, ease(lin(t, 80, 82))), mix(120, 72, ease(lin(t, 80, 82))), mix(3, 5, ease(lin(t, 80, 82))));
+  pinguino(cam, "jrCammina", 80, 88, "su", 0);
+  // il contatore dei buoni caffè
+  const speso = t > 90.2;
+  const k = speso ? pop(lin(t, 90.2, 90.7)) : 1;
+  g.save(); g.translate(1110, 70); g.scale(k, k);
+  g.fillStyle = C.bordo; g.fillRect(-110, -40, 220, 80); g.fillStyle = C.titolo; g.fillRect(-104, -34, 208, 68);
+  testo(`☕ ${speso ? 1 : 2}`, 0, 2, PIX(30), C.oro);
+  g.restore();
+  if (t > 90.2 && t < 92.2) testo("−1", 1110, 140 - (t - 90.2) * 30, PIX(26), C.rosso, "center", C.bordo);
+  didascalia(t, 80.5, 84.5, "BLOCCATO? CHIEDI A JODY.", 70, 26);
+  battute(t, [
+    [84.5, 88, "jr", "preoccupato", "Jody… server, router, sottoreti… non so da dove iniziare."],
+    [88, 92.5, "sr", "caffe", "Ti preparo io metà della topologia. Prezzo: un buono caffè."],
+    [92.5, 98, "sr", "tastiera", "I buoni si guadagnano finendo le giornate. Spendili bene!"],
+  ]);
+}
+
+function sicurezza(t) {
+  const fine = monitor(t, "PT Academy · Giorno 3 · Banca dei Ghiacci", lin(t, 98, 99.4));
+  // le due zone (VLAN) e il gestionale
+  const zona = (x, y, w, h, colore, nome, rete) => {
+    g.fillStyle = colore; g.fillRect(x, y, w, h);
+    g.strokeStyle = C.bordo; g.lineWidth = 3; g.setLineDash([10, 8]); g.strokeRect(x, y, w, h); g.setLineDash([]);
+    testo(nome, x + w / 2, y + 26, PIX(14), C.bordo); testo(rete, x + w / 2, y + 54, VT(28), "#3d4f70");
+  };
+  if (t > 99.5) zona(232, 200, 330, 380, "rgba(47,111,214,.16)", "UFFICI", "VLAN 10 · 192.168.0.0/24");
+  if (t > 100) zona(718, 200, 330, 380, "rgba(31,157,85,.16)", "SALA D'ATTESA", "VLAN 20 · 192.168.1.0/24");
+  const R = [640, 380], PCu = [330, 470], SRV = [460, 330], PCs = [900, 470];
+  if (t > 100.5) { cavo(PCu, R); cavo(SRV, R); cavo(PCs, R); }
+  if (t > 100.5) { dispositivo("router", R[0], R[1], 1, "R1"); dispositivo("pc", PCu[0], PCu[1], 1, "UFFICI"); dispositivo("server", SRV[0], SRV[1], 1, "GESTIONALE"); dispositivo("pc", PCs[0], PCs[1], 1, "SALA"); }
+  // il firewall: uno scudo sulla porta del router
+  const scudo = t > 104;
+  if (scudo) {
+    const k = pop(lin(t, 104, 104.5)); const [sx, sy] = [560, 360];
+    g.save(); g.translate(sx, sy); g.scale(k, k);
+    g.fillStyle = C.bordo; g.beginPath(); g.moveTo(0, -38); g.lineTo(34, -26); g.lineTo(30, 14); g.lineTo(0, 40); g.lineTo(-30, 14); g.lineTo(-34, -26); g.closePath(); g.fill();
+    g.fillStyle = C.oro; g.beginPath(); g.moveTo(0, -30); g.lineTo(26, -20); g.lineTo(23, 10); g.lineTo(0, 31); g.lineTo(-23, 10); g.lineTo(-26, -20); g.closePath(); g.fill();
+    testo("ACL", 0, 0, PIX(13), C.bordo);
+    g.restore();
+  }
+  // il traffico: dalla sala verso il gestionale viene fermato, dagli uffici passa
+  if (t > 101.5) {
+    const f = ((t - 101.5) / 2.2) % 1;
+    if (!scudo) pacchetto([PCs, R, SRV], f, C.rosso);
+    else {
+      const p = pacchetto([PCs, R, [560, 360]], Math.min(f * 1.4, 1), C.rosso);
+      if (f > .65) { testo("✕", p[0] + 40, p[1] - 40, PIX(30), C.rosso, "center", C.bordo); testo("BLOCCATO · tcp/80", 560, 300, PIX(12), C.rosso, "center", "#fff"); }
+      pacchetto([PCu, R, SRV], (f + .4) % 1, "#9ef0b0");
+    }
+  }
+  fine();
+  didascalia(t, 99, 103.8, "GIORNO 3: LA SICUREZZA", 668, 22, C.oro);
+  didascalia(t, 104, 109.8, "VLAN. FIREWALL. ACL. PASSWORD.", 668, 22);
+  didascalia(t, 110, 115.6, "BLOCCA SOLO IL TRAFFICO VIETATO", 668, 22);
+}
+
+function attacco(t) {
+  if (t < 119.5) {
+    const cam = ufficio("ufficio", 192, 144, 2.5);
+    const [jx, jy] = cam.p(182, 97); sprite("jrSeduto", 0, 0, 32, 40, jx, jy, 2.5);
+    const [rx, ry] = cam.p(291, 201); sprite("srSeduto", 4, 0, 32, 40, rx, ry, 2.5);
+    battute(t, [[116.3, 119.5, "sr", "caffe", "…e domani ti insegno il segreto del caffè perfetto, che è…"]]);
+    return;
+  }
+  if (t < 131) {
+    const scossa = t < 121 ? 8 : 2;
+    const cam = ufficio("allarme", 192, 144, 2.5, scossa);
+    const [jx, jy] = cam.p(182, 97); sprite("jrSeduto", 0, 0, 32, 40, jx, jy, 2.5);
+    const lampo = (Math.sin(t * 9) + 1) / 2;
+    g.fillStyle = `rgba(220,38,38,${.12 + lampo * .22})`; g.fillRect(0, 0, W, H);
+    battute(t, [
+      [119.8, 123, "sr", "spaventato", "Che succede?! L'ALLARME!"],
+      [123, 127, "boss", "arrabbiato", "TUTTI IN WAR ROOM! SUBITO!"],
+      [127, 131, "boss", "arrabbiato", "La rete di un cliente è sotto attacco. È un denial of service!"],
+    ]);
+    return;
+  }
+  if (t < 137.5) {
+    g.fillStyle = "#12050a"; g.fillRect(0, 0, W, H);
+    const z = mix(2.1, 2.4, lin(t, 131, 137.5));
+    immagine("war", W / 2 - 128 * z, H / 2 - 160 * z - 40, 256 * z, 320 * z);
+    const v = g.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 760);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(120,0,20,${.5 + Math.sin(t * 6) * .15})`);
+    g.fillStyle = v; g.fillRect(0, 0, W, H);
+    battute(t, [
+      [131.3, 134.4, "foca", "parla", "Ehehe… salve, pinguini. Avete costruito delle belle reti."],
+      [134.4, 137.5, "foca", "blink", "Sarebbe un peccato se qualcuno… le inondasse."],
+    ]);
+    return;
+  }
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  const tremolio = Math.floor(t * 20) % 5 === 0;
+  if (!tremolio) testo("LE FOCHE ATTACCANO.", W / 2 + (Math.random() - .5) * 6, H / 2, PIX(40), C.rosso, "center", "#3a0a0a");
+}
+
+function finale(t) {
+  cielo(); neve(t, 110);
+  const k = pop(lin(t, 140.3, 141.3));
+  g.save(); g.translate(W / 2, 170); g.scale(k, k);
+  testo("PENGUIN INC", 0, 0, PIX(76), C.oro, "center", C.bordo);
+  g.restore();
+  if (t > 141.6) testo(scritto("Costruisci. Ripara. Difendi.", t, 141.6, 26), W / 2, 270, PIX(26), C.ghiaccio, "center", C.bordo);
+  if (t > 143.3) testo(scritto("Un serious game su reti e cybersicurezza, dentro Cisco Packet Tracer.", t, 143.3, 40), W / 2, 335, VT(40), C.tenue);
+  [["jr_idle", 330], ["sr_caffe", 790]].forEach(([r, x], i) => {
+    if (t < 142 + i * .4) return;
+    const y = mix(H + 20, 410, ease(lin(t, 142 + i * .4, 143 + i * .4)));
+    g.fillStyle = C.bordo; g.fillRect(x - 4, y - 4, 168, 168); g.fillStyle = C.ghiaccio; g.fillRect(x, y, 160, 160);
+    immagine(r, x, y, 160, 160);
+  });
+  if (t > 145.5) { const a = lin(t, 145.5, 146.3); g.save(); g.globalAlpha = a; testo("GIORNI 4–6: DETECTION & RESPONSE · IN ARRIVO", W / 2, 625, PIX(16), C.oro); g.restore(); }
+  if (t > 146.5) { const a = lin(t, 146.5, 147.3); g.save(); g.globalAlpha = a; testo("The Big Hack 2026 · Napoli", W / 2, 675, VT(32), C.tenue); g.restore(); }
+  if (t > DUR - 1) { g.fillStyle = `rgba(0,0,0,${lin(t, DUR - 1, DUR)})`; g.fillRect(0, 0, W, H); }
+}
+
+function disegna(t) {
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.imageSmoothingEnabled = false;
+  const s = SCENE.find((x) => t >= x.a && t < x.b) || SCENE[SCENE.length - 1];
+  s.disegna(t);
+  // dissolvenza al nero tra una scena e l'altra
+  const dentro = Math.min(t - s.a, s.b - t);
+  if (s.a > 0 && dentro < .35) { g.fillStyle = `rgba(0,0,0,${1 - dentro / .35})`; g.fillRect(0, 0, W, H); }
+}
+
+/* ───────────── musica chiptune (Web Audio) ───────────── */
+const PASSO = 60 / 120 / 4;   // sedicesimi a 120 bpm
+const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const ACCORDI = { Am: [57, 60, 64], F: [53, 57, 60], C: [52, 55, 60], G: [55, 59, 62], E: [52, 56, 59], Bb: [58, 62, 65] };
+const MOTIVO = [0, null, null, 1, 2, null, 1, null, 2, null, 3, null, 2, 1, null, null];
+let A = null, uscita = null, bus = null, prossimo = 0, rumore = null;
+
+function sezione(tau) {
+  if (tau < 9) return "intro";
+  if (tau < 17) return "titolo";
+  if (tau < 38) return "ufficio";
+  if (tau < 98) return "piena";
+  if (tau < 116) return "sicurezza";
+  if (tau < 119.5) return "quiete";
+  if (tau < 140) return "attacco";
+  return "fine";
+}
+function accordo(sez, battuta) {
+  const giro = sez === "sicurezza" ? ["Am", "G", "F", "E"] : sez === "attacco" ? ["Am", "Bb"] : sez === "intro" ? ["Am"] : ["Am", "F", "C", "G"];
+  return ACCORDI[giro[battuta % giro.length]];
+}
+function nota(tipo, f, quando, durata, vol, scivola = null) {
+  const o = A.createOscillator(), v = A.createGain();
+  o.type = tipo; o.frequency.setValueAtTime(f, quando);
+  if (scivola) o.frequency.exponentialRampToValueAtTime(scivola, quando + durata);
+  v.gain.setValueAtTime(0, quando); v.gain.linearRampToValueAtTime(vol, quando + .006);
+  v.gain.exponentialRampToValueAtTime(.0008, quando + durata);
+  o.connect(v); v.connect(bus); o.start(quando); o.stop(quando + durata + .02);
+}
+function colpo(quando, durata, vol, filtro = 6000) {
+  const s = A.createBufferSource(); s.buffer = rumore;
+  const f = A.createBiquadFilter(); f.type = "highpass"; f.frequency.value = filtro;
+  const v = A.createGain(); v.gain.setValueAtTime(vol, quando); v.gain.exponentialRampToValueAtTime(.0008, quando + durata);
+  s.connect(f); f.connect(v); v.connect(bus); s.start(quando); s.stop(quando + durata + .02);
+}
+function suonaPasso(i, quando) {
+  const tau = i * PASSO, sez = sezione(tau);
+  if (sez === "quiete") return;
+  const s16 = i % 16, battuta = Math.floor(i / 16), acc = accordo(sez, battuta);
+  if (sez === "intro" || sez === "fine") {
+    if (s16 === 0) acc.forEach((m) => nota("sine", hz(m), quando, 2.2, .05));
+    if (i % 2 === 0) nota("triangle", hz(acc[(i / 2) % 3] + 12), quando, .3, .05);
+    if (sez === "fine" && tau > 148 && s16 === 0) acc.concat([acc[0] + 14]).forEach((m) => nota("triangle", hz(m + 12), quando, 4, .06));
+    return;
+  }
+  const piena = sez === "piena" || sez === "sicurezza";
+  // basso
+  if (sez === "attacco") nota("square", hz(acc[0] - 24), quando, .1, .07);
+  else if (i % 2 === 0) nota("triangle", hz(acc[0] - 12), quando, .2, .16);
+  // arpeggio
+  if (sez !== "attacco" || i % 2 === 0) nota(sez === "attacco" ? "sawtooth" : "triangle", hz(acc[s16 % 3] + 12), quando, .12, sez === "attacco" ? .025 : .05);
+  // cassa, rullante, charleston
+  if (sez !== "ufficio" && i % 8 === 0) nota("sine", 150, quando, .25, .32, 40);
+  if (piena && i % 8 === 4) colpo(quando, .12, .12, 2000);
+  if (sez !== "titolo" && i % 4 === 2) colpo(quando, .04, .05);
+  // melodia
+  if (piena) { const k = MOTIVO[s16]; if (k !== null) nota("square", hz([acc[0], acc[1], acc[2], acc[0] + 12][k] + 12), quando, .22, .05); }
+  // sirena dell'allarme
+  if (sez === "attacco" && tau < 127 && s16 === 0) nota("sawtooth", 600, quando, 1.9, .045, 950);
+}
+function preparaAudio() {
+  if (A) return;
+  A = new (window.AudioContext || window.webkitAudioContext)();
+  rumore = A.createBuffer(1, A.sampleRate * .5, A.sampleRate);
+  const d = rumore.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  uscita = A.createGain(); uscita.gain.value = .55;
+  uscita.connect(A.destination);
+}
+function ripartiMusica(tau) {          // dopo play, pausa o salto: nuovo «bus», le note già programmate tacciono
+  if (bus) { bus.gain.cancelScheduledValues(0); bus.gain.setValueAtTime(0, A.currentTime); setTimeout(((b) => () => b.disconnect())(bus), 200); }
+  bus = A.createGain(); bus.connect(uscita);
+  prossimo = Math.ceil(tau / PASSO);
+}
+function programma() {
+  if (!A || !inCorso) return;
+  const tau = adesso();
+  while (prossimo * PASSO < tau + .25) {
+    const quando = t0 + prossimo * PASSO;
+    if (quando >= A.currentTime && prossimo * PASSO < DUR) suonaPasso(prossimo, quando);
+    prossimo++;
+  }
+}
+
+/* ───────────── orologio, comandi e registrazione ───────────── */
+let inCorso = false, fermo = 0, t0 = 0, pronto = false, conAudio = true, iniziato = false;
+const LOCANDINA = 13.2;   // il fotogramma mostrato prima di premere play: il titolo
+const adesso = () => (inCorso ? A.currentTime - t0 : fermo);
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const $ = (id) => document.getElementById(id);
+
+async function play() {
+  preparaAudio();
+  await A.resume();
+  if (fermo >= DUR) fermo = 0;
+  t0 = A.currentTime - fermo; inCorso = true; iniziato = true;
+  ripartiMusica(fermo);
+  $("via").hidden = true; $("play").textContent = "❚❚";
+}
+function pausa() {
+  if (!inCorso) return;
+  fermo = adesso(); inCorso = false;
+  if (bus) bus.gain.setValueAtTime(0, A.currentTime);
+  A.suspend(); $("play").textContent = "▶";
+}
+function vaiA(s) {
+  iniziato = true;
+  fermo = clamp(s, 0, DUR);
+  if (inCorso) { t0 = A.currentTime - fermo; ripartiMusica(fermo); }
+}
+function ciclo() {
+  let t = adesso();
+  if (inCorso && t >= DUR) { pausa(); fermo = DUR; t = DUR; $("via").hidden = false; $("via").firstElementChild.textContent = "↺ Rivedi il trailer"; if (registratore) fermaRegistrazione(); }
+  if (pronto) disegna(iniziato ? Math.min(t, DUR - .001) : LOCANDINA);
+  programma();
+  $("pos").value = t.toFixed(1); $("tempo").textContent = `${mmss(t)} / ${mmss(DUR)}`;
+  requestAnimationFrame(ciclo);
+}
+
+$("via").addEventListener("click", play);
+$("play").addEventListener("click", () => (inCorso ? pausa() : play()));
+$("dacapo").addEventListener("click", () => { vaiA(0); if (!inCorso) play(); });
+$("pos").addEventListener("input", (e) => vaiA(+e.target.value));
+$("audio").addEventListener("click", () => {
+  conAudio = !conAudio; $("audio").textContent = conAudio ? "🔊" : "🔇";
+  if (uscita) uscita.gain.value = conAudio ? .55 : 0;
+});
+$("intero").addEventListener("click", () => {
+  const el = document.querySelector(".schermo");
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === " ") { e.preventDefault(); inCorso ? pausa() : play(); }
+});
+
+/* Registrazione in video (.webm, con la musica): solo nella copia locale, servita dal server del gioco.
+ * Dentro l'artifact il browser non permette di scaricare file creati dalla pagina. */
+let registratore = null, pezzi = [];
+const locale = ["127.0.0.1", "localhost"].includes(location.hostname);
+if (locale && window.MediaRecorder && tela.captureStream) {
+  $("registra").hidden = false;
+  $("nota").innerHTML += " <b>Registra video</b> lo riproduce dall'inizio e alla fine scarica il file: tieni la scheda in primo piano.";
+}
+async function avviaRegistrazione() {
+  preparaAudio(); await A.resume();
+  const dest = A.createMediaStreamDestination(); uscita.connect(dest);
+  const flusso = new MediaStream([...tela.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const tipo = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((x) => MediaRecorder.isTypeSupported(x));
+  registratore = new MediaRecorder(flusso, { mimeType: tipo, videoBitsPerSecond: 6e6 });
+  pezzi = [];
+  registratore.ondataavailable = (e) => e.data.size && pezzi.push(e.data);
+  registratore.onstop = () => {
+    uscita.disconnect(dest);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(pezzi, { type: "video/webm" }));
+    a.download = "penguin-inc-trailer-v1.webm"; a.click();
+    $("registra").textContent = "⏺ Registra video"; registratore = null;
+  };
+  vaiA(0); if (inCorso) pausa();
+  registratore.start(1000);
+  $("registra").textContent = "● Registrazione…";
+  await play();
+}
+function fermaRegistrazione() { if (registratore && registratore.state !== "inactive") registratore.stop(); }
+$("registra").addEventListener("click", () => (registratore ? fermaRegistrazione() : avviaRegistrazione()));
+
+/* avvio: prima caratteri e immagini, poi il primo fotogramma */
+g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+Promise.all([
+  caricaImmagini(),
+  document.fonts ? Promise.all([PIX(20), VT(20), PS(20)].map((f) => document.fonts.load(f).catch(() => {}))) : Promise.resolve(),
+]).then(() => { pronto = true; });
+requestAnimationFrame(ciclo);
+</script>
