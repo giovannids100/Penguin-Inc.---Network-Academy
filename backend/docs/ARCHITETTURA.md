@@ -605,3 +605,4 @@ Problemi misurati durante lo sviluppo, già gestiti nel codice: se scrivete codi
   fare il login sulle console; non escono mai dall'API e non finiscono nel diario.
 - Chi ha il codice di accesso comanda il Packet Tracer aperto (può anche svuotarlo): sceglietelo lungo e
   chiudete il Funnel quando non serve.
+  
