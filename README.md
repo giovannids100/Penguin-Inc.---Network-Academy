@@ -12,8 +12,6 @@
 
 https://github.com/user-attachments/assets/12c95ea3-2608-4565-a71f-4abe95f7fce6
 
-<p align="center"><sub>Il video è anche nel repository: <a href="docs/video/penguin-inc-network-academy.mp4?raw=true">docs/video/penguin-inc-network-academy.mp4</a> (MP4, 9 MB).</sub></p>
-
 ---
 
 ## The Big Hack 2026
